@@ -729,11 +729,17 @@ IMPORTANT RULES:
           </div>
           {searchMode==="single"?(
             <div style={{display:"grid",gap:10}}>
-              <input value={discoverCity} onChange={e=>setDiscoverCity(e.target.value)} placeholder="e.g. Houston, Nashville, Raleigh..."
-                onKeyDown={e=>e.key==="Enter"&&discoverVenues()} style={{...inp,padding:"10px 14px"}}/>
-              <select value={discoverType} onChange={e=>setDiscoverType(e.target.value)} style={{...sel,width:"100%",padding:"10px 14px"}}>
-                {DISCOVER_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
+              <div>
+                <label style={{...lbl,display:"block",marginBottom:4}}>City</label>
+                <input value={discoverCity} onChange={e=>setDiscoverCity(e.target.value)} placeholder="e.g. Houston, Nashville, Raleigh..."
+                  onKeyDown={e=>e.key==="Enter"&&discoverVenues()} style={{...inp,padding:"10px 14px"}}/>
+              </div>
+              <div>
+                <label style={{...lbl,display:"block",marginBottom:4}}>Venue Type</label>
+                <select value={discoverType} onChange={e=>setDiscoverType(e.target.value)} style={{...sel,width:"100%",padding:"10px 14px"}}>
+                  {DISCOVER_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
               <button onClick={discoverVenues} disabled={isSearching||!discoverCity.trim()} style={{...btnP,opacity:isSearching||!discoverCity.trim()?.6:1,padding:"11px 0"}}>
                 {isSearching?"Searching...":"Search Venues"}
               </button>
@@ -778,9 +784,12 @@ IMPORTANT RULES:
                   )}
                 </div>
               </div>
-              <select value={discoverType} onChange={e=>setDiscoverType(e.target.value)} style={{...sel,width:"100%",padding:"10px 14px"}}>
-                {DISCOVER_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
+              <div>
+                <label style={{...lbl,display:"block",marginBottom:4}}>Venue Type</label>
+                <select value={discoverType} onChange={e=>setDiscoverType(e.target.value)} style={{...sel,width:"100%",padding:"10px 14px"}}>
+                  {DISCOVER_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
               {isSearching&&batchProgress.total>1&&(
                 <div>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
