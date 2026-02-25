@@ -309,7 +309,7 @@ IMPORTANT RULES:
     if (photoCache[key]) return photoCache[key];
     try {
       const query = `${name} ${city} restaurant interior dining`;
-      const res = await fetch(`${UNSPLASH_PROXY}?query=${encodeURIComponent(query)}&per_page=1`);
+      const res = await fetch(`${PHOTOS_PROXY}?query=${encodeURIComponent(query)}&per_page=1`);
       console.log(`[Photo] ${name}: status ${res.status}`);
       if (!res.ok) { console.warn(`[Photo] ${name}: failed with ${res.status}`); return null; }
       const data = await res.json();
