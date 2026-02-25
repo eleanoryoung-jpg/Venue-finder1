@@ -303,7 +303,7 @@ IMPORTANT RULES:
     setCompareIds(p=>{const n=new Set(p);if(n.has(id))n.delete(id);else if(n.size<5)n.add(id);return n;});
   },[]);
 
-  // ── Unsplash photo fetcher ──
+  // ── Venue photo fetcher ──
   const fetchVenuePhoto = useCallback(async (name, city) => {
     const key = `${name}-${city}`;
     if (photoCache[key]) return photoCache[key];
