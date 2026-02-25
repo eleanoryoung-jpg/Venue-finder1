@@ -308,14 +308,20 @@ IMPORTANT RULES:
     const key = `${name}-${city}`;
     if (photoCache[key]) return photoCache[key];
     try {
-      const query = encodeURIComponent(`${name} ${city} restaurant interior`);
-      const res = await fetch(`${UNSPLASH_PROXY}?query=${query}&per_page=1`);
-      if (!res.ok) return null;
+      const query = `${name} ${city} restaurant interior dining`;
+      const res = await fetch(`${UNSPLASH_PROXY}?query=${encodeURIComponent(query)}&per_page=1`);
+      console.log(`[Photo] ${name}: status ${res.status}`);
+      if (!res.ok) { console.warn(`[Photo] ${name}: failed with ${res.status}`); return null; }
       const data = await res.json();
+      console.log(`[Photo] ${name}: response`, data);
       const url = data?.photos?.[0]?.src?.landscape || data?.photos?.[0]?.src?.large || null;
+      console.log(`[Photo] ${name}: url =`, url);
       if (url) photoCache[key] = url;
       return url;
-    } catch { return null; }
+    } catch(e) {
+      console.error(`[Photo] ${name}: error`, e);
+      return null;
+    }
   }, []);
 
 
