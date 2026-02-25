@@ -312,7 +312,7 @@ IMPORTANT RULES:
       const res = await fetch(`${UNSPLASH_PROXY}?query=${query}&per_page=1`);
       if (!res.ok) return null;
       const data = await res.json();
-      const url = data?.results?.[0]?.urls?.regular || null;
+      const url = data?.photos?.[0]?.src?.landscape || data?.photos?.[0]?.src?.large || null;
       if (url) photoCache[key] = url;
       return url;
     } catch { return null; }
