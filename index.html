@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Venue Tracker — Field Marketing</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
+  <title>Venue Tracker â Field Marketing</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ð·</text></svg>">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflar.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
@@ -29,7 +29,7 @@
 <script type="text/babel">
 const {useState,useMemo,useEffect,useCallback,useRef} = React;
 
-// ═══ CONSTANTS ═══
+// âââ CONSTANTS âââ
 const REGIONS = {
   "Northeast":["New York","Boston","Philadelphia","Washington DC","Pittsburgh"],
   "Southeast":["Atlanta","Miami","Charlotte","Nashville","Raleigh"],
@@ -42,8 +42,6 @@ const STATUSES = ["Prospect","Contacted","Booked","Used","Archived"];
 const STATUS_COLORS = {Prospect:"#6B6B65",Contacted:"#2A7A5A",Booked:"#0A0A0A",Used:"#1A5C3A",Archived:"#AAAAAA"};
 const STORAGE_KEY = "venue-tracker-data-v2";
 const API_KEY_STORAGE = "venue-tracker-api-key";
-const PHOTOS_PROXY = "/api/photos-proxy";
-const PHOTO_CACHE_KEY = "venue-photo-cache-v1";
 // Load persisted photo cache from localStorage
 const photoCache = (() => {
   try { return JSON.parse(localStorage.getItem(PHOTO_CACHE_KEY)) || {}; }
@@ -70,8 +68,8 @@ const loadVenues = () => {
     if (old) return JSON.parse(old).map(v=>({...v,visited:v.status==="Visited",website:v.website||""}));
   } catch(e){}
   return [
-    {id:1,name:"The Capital Grille",city:"New York",region:"Northeast",eventSizes:["Intimate (8-20)","Mid-size (20-50)"],pricePerHead:185,privateRoom:true,av:false,dietary:true,exclusivity:4,status:"Used",visited:true,website:"https://www.thecapitalgrille.com",notes:"Excellent private dining room on 2nd floor. Used for Q3 CISO dinner — great feedback.",contact:"Sarah M.",phone:"(212) 555-0134",lastUsed:"2025-09-15",rating:5},
-    {id:2,name:"RPM Italian",city:"Chicago",region:"Midwest",eventSizes:["Intimate (8-20)","Mid-size (20-50)"],pricePerHead:165,privateRoom:true,av:false,dietary:true,exclusivity:5,status:"Used",visited:true,website:"https://www.rpmrestaurants.com/rpm-italian",notes:"Hard to get the private room — book 6+ weeks out. Clients love it.",contact:"Marco D.",phone:"(312) 555-0198",lastUsed:"2025-08-22",rating:5},
+    {id:1,name:"The Capital Grille",city:"New York",region:"Northeast",eventSizes:["Intimate (8-20)","Mid-size (20-50)"],pricePerHead:185,privateRoom:true,av:false,dietary:true,exclusivity:4,status:"Used",visited:true,website:"https://www.thecapitalgrille.com",notes:"Excellent private dining room on 2nd floor. Used for Q3 CISO dinner â great feedback.",contact:"Sarah M.",phone:"(212) 555-0134",lastUsed:"2025-09-15",rating:5},
+    {id:2,name:"RPM Italian",city:"Chicago",region:"Midwest",eventSizes:["Intimate (8-20)","Mid-size (20-50)"],pricePerHead:165,privateRoom:true,av:false,dietary:true,exclusivity:5,status:"Used",visited:true,website:"https://www.rpmrestaurants.com/rpm-italian",notes:"Hard to get the private room â book 6+ weeks out. Clients love it.",contact:"Marco D.",phone:"(312) 555-0198",lastUsed:"2025-08-22",rating:5},
     {id:3,name:"Nobu Dallas",city:"Dallas",region:"Southwest",eventSizes:["Intimate (8-20)","Mid-size (20-50)","Large (50-100+)"],pricePerHead:210,privateRoom:true,av:true,dietary:true,exclusivity:5,status:"Booked",visited:false,website:"https://www.noburestaurants.com/dallas",notes:"Booked for Feb exec dinner. Multiple private spaces available.",contact:"Jennifer L.",phone:"(214) 555-0267",lastUsed:"",rating:0},
     {id:4,name:"The Sloane",city:"San Francisco",region:"West Coast",eventSizes:["Mid-size (20-50)","Large (50-100+)"],pricePerHead:140,privateRoom:true,av:true,dietary:true,exclusivity:3,status:"Contacted",visited:true,website:"",notes:"Modern event space with great AV setup. Rooftop option for cocktail hour.",contact:"David K.",phone:"(415) 555-0312",lastUsed:"",rating:4},
     {id:5,name:"STK Atlanta",city:"Atlanta",region:"Southeast",eventSizes:["Intimate (8-20)","Mid-size (20-50)"],pricePerHead:155,privateRoom:true,av:false,dietary:true,exclusivity:4,status:"Prospect",visited:false,website:"",notes:"Recommended by sales team. Need to do site visit.",contact:"",phone:"",lastUsed:"",rating:0},
@@ -88,19 +86,19 @@ const guessRegion = (city) => {
 };
 const emptyVenue = () => ({id:Date.now(),name:"",city:"",region:"",eventSizes:[],pricePerHead:0,privateRoom:false,av:false,dietary:false,exclusivity:0,status:"Prospect",visited:false,website:"",notes:"",contact:"",phone:"",lastUsed:"",rating:0});
 
-// ═══ STYLES ═══
+// âââ STYLES âââ
 const sel = {padding:"8px 12px",borderRadius:8,border:"1.5px solid #D8D8D0",background:"#FFFFFF",fontSize:13,fontFamily:"'DM Sans',sans-serif",color:"#0A0A0A",outline:"none",cursor:"pointer",minWidth:130,boxSizing:"border-box"};
 const inp = {...sel,cursor:"text",width:"100%"};
 const btnP = {padding:"10px 24px",borderRadius:8,border:"none",background:"#0A0A0A",color:"#EBF245",fontSize:13,fontFamily:"'DM Sans',sans-serif",fontWeight:700,cursor:"pointer",letterSpacing:"0.02em"};
 const btnS = {...btnP,background:"transparent",color:"#0A0A0A",border:"1.5px solid #0A0A0A"};
 const lbl = {fontSize:11,textTransform:"uppercase",letterSpacing:"0.08em",color:"#6B6B65",fontFamily:"'DM Sans',sans-serif",fontWeight:600};
 
-// ═══ SHARED COMPONENTS ═══
+// âââ SHARED COMPONENTS âââ
 const Stars = ({rating,onRate,size=16,interactive=false}) => (
   <div style={{display:"flex",gap:2}}>
     {[1,2,3,4,5].map(s=>(
       <span key={s} onClick={()=>interactive&&onRate&&onRate(s)}
-        style={{cursor:interactive?"pointer":"default",fontSize:size,color:s<=rating?"#0A0A0A":"#D0D0C8",userSelect:"none"}}>★</span>
+        style={{cursor:interactive?"pointer":"default",fontSize:size,color:s<=rating?"#0A0A0A":"#D0D0C8",userSelect:"none"}}>â</span>
     ))}
   </div>
 );
@@ -124,45 +122,7 @@ const Spinner = ({size=32}) => (
   <div style={{width:size,height:size,border:"3px solid #E0E0D8",borderTopColor:"#0A0A0A",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>
 );
 
-// ═══ VENUE PHOTO ═══
-const VenuePhoto = ({name,city,height=150}) => {
-  const [url,setUrl] = useState(null);
-  const [loading,setLoading] = useState(true);
-  const key = `${name}||${city}`;
-
-  useEffect(()=>{
-    let cancelled = false;
-    setLoading(true); setUrl(null);
-    if (photoCache[key]) { setUrl(photoCache[key]); setLoading(false); return; }
-    const q = encodeURIComponent(`${name} ${city} restaurant fine dining interior`);
-    fetch(`${PHOTOS_PROXY}?query=${q}&per_page=1`)
-      .then(r=>r.ok?r.json():null)
-      .then(data=>{
-        if (cancelled) return;
-        const u = data?.photos?.[0]?.src?.landscape || data?.photos?.[0]?.src?.large || null;
-        if (u) { photoCache[key] = u; savePhotoCache(); }
-        setUrl(u); setLoading(false);
-      })
-      .catch(()=>{ if(!cancelled){setUrl(null);setLoading(false);} });
-    return ()=>{cancelled=true;};
-  },[key]);
-
-  const hue = name.split("").reduce((a,c)=>a+c.charCodeAt(0),0)%360;
-  const grad = `linear-gradient(135deg,hsl(${hue},25%,18%) 0%,hsl(${(hue+40)%360},30%,32%) 100%)`;
-
-  return (
-    <div style={{width:"100%",height,background:grad,position:"relative",overflow:"hidden",borderRadius:"10px 10px 0 0",flexShrink:0}}>
-      {loading&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}><Spinner size={20}/></div>}
-      {!loading&&url&&<img src={url} alt={name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={()=>setUrl(null)}/>}
-      {!loading&&!url&&<div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4}}>
-        <span style={{fontSize:26}}>🍽</span>
-        <span style={{fontSize:11,color:"rgba(255,255,255,0.65)",fontWeight:600,textAlign:"center",padding:"0 12px"}}>{name}</span>
-      </div>}
-    </div>
-  );
-};
-
-// ═══ DISC CARD ═══
+// âââ VENUE PHOTO âââ
 const DiscCard = ({dv,savedIds,venues,saveDiscovered}) => {
   const isSaved = savedIds.has(dv._id);
   const alreadyIn = venues.some(v=>v.name.toLowerCase()===dv.name.toLowerCase());
@@ -173,7 +133,7 @@ const DiscCard = ({dv,savedIds,venues,saveDiscovered}) => {
       <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
         <div style={{flex:1}}>
           <h3 style={{margin:0,fontSize:15,fontFamily:"'Playfair Display',serif",color:"#0A0A0A",fontWeight:600}}>{dv.name}</h3>
-          <p style={{margin:"2px 0 0",fontSize:12,color:"#6B6B65"}}>{[dv.neighborhood,dv.cuisine].filter(Boolean).join(" · ")}</p>
+          <p style={{margin:"2px 0 0",fontSize:12,color:"#6B6B65"}}>{[dv.neighborhood,dv.cuisine].filter(Boolean).join(" Â· ")}</p>
         </div>
         <span style={{fontSize:13,fontWeight:700,color:"#0A0A0A",whiteSpace:"nowrap",marginLeft:8}}>{dv.priceRange}</span>
       </div>
@@ -184,17 +144,17 @@ const DiscCard = ({dv,savedIds,venues,saveDiscovered}) => {
         {dv.estimatedPricePerHead>0&&<Tag color="#0A0A0A">~${dv.estimatedPricePerHead}/head</Tag>}
       </div>
       {dv.knownFor&&<p style={{fontSize:11,color:"#A0A09A",fontStyle:"italic",margin:"0 0 4px"}}>Known for: {dv.knownFor}</p>}
-      {dv.website&&<a href={dv.website} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"#4A6FA5",display:"block",marginBottom:4,textDecoration:"none"}}>🔗 {dv.website}</a>}
-      {dv.sources&&<p style={{fontSize:11,color:"#4A6FA5",margin:"0 0 10px",fontWeight:500}}>📍 {dv.sources}</p>}
+      {dv.website&&<a href={dv.website} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"#4A6FA5",display:"block",marginBottom:4,textDecoration:"none"}}>ð {dv.website}</a>}
+      {dv.sources&&<p style={{fontSize:11,color:"#4A6FA5",margin:"0 0 10px",fontWeight:500}}>ð {dv.sources}</p>}
       <button onClick={()=>!isSaved&&!alreadyIn&&saveDiscovered(dv)} disabled={isSaved||alreadyIn}
         style={{...btnP,width:"100%",textAlign:"center",fontSize:12,padding:"8px 0",background:isSaved||alreadyIn?"#D0D0C8":"#0A0A0A",cursor:isSaved||alreadyIn?"default":"pointer"}}>
-        {alreadyIn?"Already in Tracker":isSaved?"✓ Saved":"＋ Save to Tracker"}
+        {alreadyIn?"Already in Tracker":isSaved?"â Saved":"ï¼ Save to Tracker"}
       </button>
     </div>
   );
 };
 
-// ═══ DISCOVER PANEL — top-level to prevent re-render glitch ═══
+// âââ DISCOVER PANEL â top-level to prevent re-render glitch âââ
 const DiscoverPanel = React.memo(({venues,discoverCity,setDiscoverCity,discoverType,setDiscoverType,
   searchMode,setSearchMode,batchCities,setBatchCities,isSearching,batchProgress,
   discoveredVenues,savedIds,searchError,apiKey,discoverVenues,saveDiscovered,setShowDiscover}) => {
@@ -235,7 +195,7 @@ const DiscoverPanel = React.memo(({venues,discoverCity,setDiscoverCity,discoverT
             <h2 style={{margin:0,fontSize:20,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>Discover Venues</h2>
             <p style={{margin:"4px 0 0",fontSize:13,color:"#6B6B65"}}>Find venues in any city to add to your tracker</p>
           </div>
-          <button onClick={()=>setShowDiscover(false)} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#A0A09A",padding:4}}>✕</button>
+          <button onClick={()=>setShowDiscover(false)} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#A0A09A",padding:4}}>â</button>
         </div>
         {/* Mode toggle */}
         <div style={{display:"flex",border:"1.5px solid #D8D8D0",borderRadius:8,overflow:"hidden",marginBottom:14}}>
@@ -279,7 +239,7 @@ const DiscoverPanel = React.memo(({venues,discoverCity,setDiscoverCity,discoverT
                   {[...batchSelected].map(city=>(
                     <span key={city} onClick={()=>toggleCity(city)}
                       style={{display:"inline-flex",alignItems:"center",gap:4,background:"#0A0A0A",color:"#EBF245",padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer"}}>
-                      {city} <span style={{fontSize:14,lineHeight:1}}>×</span>
+                      {city} <span style={{fontSize:14,lineHeight:1}}>Ã</span>
                     </span>
                   ))}
                 </div>
@@ -326,7 +286,7 @@ const DiscoverPanel = React.memo(({venues,discoverCity,setDiscoverCity,discoverT
             </button>
           </div>
         )}
-        {!apiKey&&<p style={{margin:"10px 0 0",fontSize:12,color:"#C0392B",fontWeight:600}}>⚠ Set up your API key in Settings to enable search.</p>}
+        {!apiKey&&<p style={{margin:"10px 0 0",fontSize:12,color:"#C0392B",fontWeight:600}}>â  Set up your API key in Settings to enable search.</p>}
       </div>
       {/* Results */}
       <div style={{flex:1,overflowY:"auto",padding:"16px 28px"}}>
@@ -338,7 +298,7 @@ const DiscoverPanel = React.memo(({venues,discoverCity,setDiscoverCity,discoverT
           <div>
             <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
               <p style={{margin:0,fontSize:13,color:"#0A0A0A",fontWeight:700}}>{discoveredVenues.length} venues found{isSearching?" (searching...)":""}</p>
-              {savedIds.size>0&&<p style={{margin:0,fontSize:12,color:"#1A5C3A",fontWeight:700}}>{savedIds.size} saved ✓</p>}
+              {savedIds.size>0&&<p style={{margin:0,fontSize:12,color:"#1A5C3A",fontWeight:700}}>{savedIds.size} saved â</p>}
             </div>
             {isMulti?cities.map(city=>{
               const cvs = discoveredVenues.filter(v=>v.city===city);
@@ -357,7 +317,7 @@ const DiscoverPanel = React.memo(({venues,discoverCity,setDiscoverCity,discoverT
         )}
         {!isSearching&&!searchError&&discoveredVenues.length===0&&(
           <div style={{textAlign:"center",padding:"48px 0",color:"#A0A09A"}}>
-            <p style={{fontSize:44,margin:"0 0 10px"}}>🍷</p>
+            <p style={{fontSize:44,margin:"0 0 10px"}}>ð·</p>
             <p style={{fontSize:16,fontFamily:"'Playfair Display',serif",color:"#3A3A35"}}>Search any city to discover venues</p>
             <p style={{fontSize:12,maxWidth:340,margin:"6px auto 0",lineHeight:1.6}}>Use Batch Search to pick multiple cities at once.</p>
           </div>
@@ -367,7 +327,7 @@ const DiscoverPanel = React.memo(({venues,discoverCity,setDiscoverCity,discoverT
   );
 });
 
-// ═══ MAIN APP ═══
+// âââ MAIN APP âââ
 function VenueTracker() {
   const [venues,setVenues] = useState(loadVenues);
   const [search,setSearch] = useState("");
@@ -496,7 +456,7 @@ function VenueTracker() {
       eventSizes:[],pricePerHead:dv.estimatedPricePerHead||0,privateRoom:dv.privateRoom||false,
       av:false,dietary:false,exclusivity:dv.priceRange==="$$$$$"?5:dv.priceRange==="$$$$"?4:3,
       status:"Prospect",visited:false,website:dv.website||"",
-      notes:`${dv.description||""}\n\nNeighborhood: ${dv.neighborhood||"—"}\nKnown for: ${dv.knownFor||"—"}\nCuisine: ${dv.cuisine||"—"}\nCapacity: ${dv.capacity||"—"}${dv.sources?`\nFound on: ${dv.sources}`:""}`.trim(),
+      notes:`${dv.description||""}\n\nNeighborhood: ${dv.neighborhood||"â"}\nKnown for: ${dv.knownFor||"â"}\nCuisine: ${dv.cuisine||"â"}\nCapacity: ${dv.capacity||"â"}${dv.sources?`\nFound on: ${dv.sources}`:""}`.trim(),
       contact:"",phone:"",lastUsed:"",rating:0,
     }]);
     setSavedIds(p=>new Set([...p,dv._id]));
@@ -524,13 +484,13 @@ function VenueTracker() {
 
   const generateBrief=async()=>{setAiLoading(true);setAiResult("");const cv=venues.filter(v=>v.city.toLowerCase().includes(briefForm.city.toLowerCase()));try{setAiResult(await callAI(`Create a comprehensive event brief.\n\nAccount: ${briefForm.accountName}\nCity: ${briefForm.city}\nGuests: ${briefForm.guestCount}\nBudget: $${briefForm.budget}\nType: ${briefForm.eventType}\nGoals: ${briefForm.goals||"Build relationships, generate pipeline"}\n\n${cv.length>0?"Venues in tracker for this city:\n"+cv.map(v=>`- ${v.name}: $${v.pricePerHead}/head, ${v.status}${v.website?", "+v.website:""}`).join("\n"):"No venues in tracker yet."}\n\nInclude: Event Overview, Target Attendees, Venue Recommendations, Menu, Budget Breakdown, Run of Show, Follow-up Plan, Success Metrics`))}catch(e){setAiResult("Error: "+e.message)}finally{setAiLoading(false)}};
 
-  const generateComparison=async()=>{const s=venues.filter(v=>compareIds.has(v.id));if(s.length<2)return;setAiLoading(true);setAiResult("");try{setAiResult(await callAI(`Side-by-side venue comparison for stakeholder review.\n\n${s.map((v,i)=>`VENUE ${i+1}: ${v.name}\n- City: ${v.city} (${v.region})\n- Price/head: $${v.pricePerHead}\n- Private: ${v.privateRoom?"Y":"N"} | AV: ${v.av?"Y":"N"} | Exclusivity: ${v.exclusivity}/5 | Rating: ${v.rating}/5\n- Status: ${v.status} | Visited: ${v.visited?"Y":"N"}\n- Website: ${v.website||"—"}\n- Notes: ${v.notes||"—"}`).join("\n\n")}\n\nInclude: Executive Summary, Comparison Table, Analysis, Cost for 20 & 40 guests, Ranking, Booking Notes`))}catch(e){setAiResult("Error: "+e.message)}finally{setAiLoading(false)}};
+  const generateComparison=async()=>{const s=venues.filter(v=>compareIds.has(v.id));if(s.length<2)return;setAiLoading(true);setAiResult("");try{setAiResult(await callAI(`Side-by-side venue comparison for stakeholder review.\n\n${s.map((v,i)=>`VENUE ${i+1}: ${v.name}\n- City: ${v.city} (${v.region})\n- Price/head: $${v.pricePerHead}\n- Private: ${v.privateRoom?"Y":"N"} | AV: ${v.av?"Y":"N"} | Exclusivity: ${v.exclusivity}/5 | Rating: ${v.rating}/5\n- Status: ${v.status} | Visited: ${v.visited?"Y":"N"}\n- Website: ${v.website||"â"}\n- Notes: ${v.notes||"â"}`).join("\n\n")}\n\nInclude: Executive Summary, Comparison Table, Analysis, Cost for 20 & 40 guests, Ranking, Booking Notes`))}catch(e){setAiResult("Error: "+e.message)}finally{setAiLoading(false)}};
 
   const generateMatch=async()=>{setAiLoading(true);setAiResult("");try{setAiResult(await callAI(`Recommend venues from our tracker for this event.\n\nEvent: ${matchForm.description}\n\nVenues:\n${venues.map(v=>`- ${v.name} (${v.city}): $${v.pricePerHead}/head | Private: ${v.privateRoom?"Y":"N"} | Exclusivity: ${v.exclusivity}/5 | Rating: ${v.rating}/5 | Status: ${v.status}`).join("\n")}\n\nInclude: Best Matches (top 3-5 with reasons), Gaps, Logistics Tips`))}catch(e){setAiResult("Error: "+e.message)}finally{setAiLoading(false)}};
 
-  const generateMenu=async(v)=>{setAiLoading(true);setAiResult("");try{setAiResult(await callAI(`Menu plan for a corporate event.\n\nVenue: ${v.name}, ${v.city} | $${v.pricePerHead}/head\nGuests: ${menuForm.guestCount}\nDietary: ${menuForm.dietaryNeeds||"Mix — some vegetarian, gluten-free"}\nPreferences: ${menuForm.preferences||"Upscale corporate dining"}\n\nInclude: Cocktail hour, 3-course menu, Dietary accommodations, Wine pairings, Cost breakdown, Questions for venue, Things to confirm`))}catch(e){setAiResult("Error: "+e.message)}finally{setAiLoading(false)}};
+  const generateMenu=async(v)=>{setAiLoading(true);setAiResult("");try{setAiResult(await callAI(`Menu plan for a corporate event.\n\nVenue: ${v.name}, ${v.city} | $${v.pricePerHead}/head\nGuests: ${menuForm.guestCount}\nDietary: ${menuForm.dietaryNeeds||"Mix â some vegetarian, gluten-free"}\nPreferences: ${menuForm.preferences||"Upscale corporate dining"}\n\nInclude: Cocktail hour, 3-course menu, Dietary accommodations, Wine pairings, Cost breakdown, Questions for venue, Things to confirm`))}catch(e){setAiResult("Error: "+e.message)}finally{setAiLoading(false)}};
 
-  // ── VenueCard ──
+  // ââ VenueCard ââ
   const VenueCard = useCallback(({venue})=>(
     <div style={{position:"relative"}}>
       <div onClick={e=>{e.stopPropagation();toggleCompare(venue.id);}}
@@ -538,7 +498,7 @@ function VenueTracker() {
           border:`2px solid ${compareIds.has(venue.id)?"#EBF245":"rgba(255,255,255,0.8)"}`,
           background:compareIds.has(venue.id)?"#0A0A0A":"rgba(0,0,0,0.25)",
           display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:2,fontSize:12,color:"#EBF245"}}>
-        {compareIds.has(venue.id)&&"✓"}
+        {compareIds.has(venue.id)&&"â"}
       </div>
       <div onClick={()=>{setSelectedVenue(venue);setIsEditing(false);}}
         style={{background:"#FFFFFF",borderRadius:12,border:`1.5px solid ${selectedVenue?.id===venue.id?"#0A0A0A":"#E0E0D8"}`,
@@ -546,26 +506,25 @@ function VenueTracker() {
           boxShadow:selectedVenue?.id===venue.id?"0 4px 20px rgba(0,0,0,0.12)":"0 1px 4px rgba(0,0,0,0.04)"}}
         onMouseEnter={e=>{e.currentTarget.style.borderColor="#0A0A0A";e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 28px rgba(0,0,0,0.1)";}}
         onMouseLeave={e=>{e.currentTarget.style.borderColor=selectedVenue?.id===venue.id?"#0A0A0A":"#E0E0D8";e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow=selectedVenue?.id===venue.id?"0 4px 20px rgba(0,0,0,0.12)":"0 1px 4px rgba(0,0,0,0.04)";}}>
-        <VenuePhoto name={venue.name} city={venue.city} height={150}/>
         <div style={{padding:"14px 16px"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems"flex-start",marginBottom:8}}>
             <div style={{flex:1,minWidth:0}}>
               <h3 style={{margin:0,fontSize:15,fontFamily:"'Playfair Display',serif",color:"#0A0A0A",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{venue.name}</h3>
-              <p style={{margin:"2px 0 0",fontSize:12,color:"#6B6B65"}}>{venue.city}{venue.region?` · ${venue.region}`:""}</p>
+              <p style={{margin:"2px 0 0",fontSize:12,color:"#6B6B65"}}>{venue.city}{venue.region?` Â· ${venue.region}`:""}</p>
             </div>
             <Tag filled color={STATUS_COLORS[venue.status]}>{venue.status}</Tag>
           </div>
           <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
             <span style={{fontSize:18,fontWeight:700,color:"#0A0A0A",fontFamily:"'Playfair Display',serif"}}>${venue.pricePerHead}</span>
             <span style={{fontSize:11,color:"#A0A09A"}}>/head</span>
-            {venue.visited&&<span style={{fontSize:11,color:"#1A5C3A",fontWeight:700,background:"#EDFAF3",padding:"2px 8px",borderRadius:6,border:"1px solid #B7E4C7"}}>✓ Visited</span>}
+            {venue.visited&&<span style={{fontSize:11,color:"#1A5C3A",fontWeight:700,background:"#EDFAF3",padding:"2px 8px",borderRadius:6,border:"1px solid #B7E4C7"}}>â Visited</span>}
             <div style={{marginLeft:"auto"}}><Stars rating={venue.exclusivity} size={13}/></div>
           </div>
           {venue.website&&<a href={venue.website} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}
             style={{fontSize:11,color:"#4A6FA5",margin:"0 0 8px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block",textDecoration:"none"}}
             onMouseEnter={e=>e.currentTarget.style.textDecoration="underline"}
             onMouseLeave={e=>e.currentTarget.style.textDecoration="none"}>
-            🔗 {venue.website}
+            ð {venue.website}
           </a>}
           <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
             {venue.privateRoom&&<Tag color="#2A7A5A">Private</Tag>}
@@ -589,8 +548,8 @@ function VenueTracker() {
       <td style={{padding:"12px 12px",fontSize:13,color:"#5A5348"}}>{venue.city}</td>
       <td style={{padding:"12px 12px",fontSize:13,color:"#6B6B65"}}>{venue.region}</td>
       <td style={{padding:"12px 12px",fontSize:14,fontWeight:700}}>${venue.pricePerHead}</td>
-      <td style={{padding:"12px 12px"}}>{venue.website?<a href={venue.website} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{fontSize:12,color:"#4A6FA5",textDecoration:"none"}}>🔗 Visit</a>:"—"}</td>
-      <td style={{padding:"12px 12px",fontSize:13}}>{venue.visited?<span style={{color:"#1A5C3A",fontWeight:700}}>✓ Yes</span>:<span style={{color:"#A0A09A"}}>No</span>}</td>
+      <td style={{padding:"12px 12px"}}>{venue.website?<a href={venue.website} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{fontSize:12,color:"#4A6FA5",textDecoration:"none"}}>ð Visit</a>:"â"}</td>
+      <td style={{padding:"12px 12px",fontSize:13}}>{venue.visited?<span style={{color:"#1A5C3A",fontWeight:700}}>â Yes</span>:<span style={{color:"#A0A09A"}}>No</span>}</td>
       <td style={{padding:"12px 12px"}}><Stars rating={venue.exclusivity} size={13}/></td>
       <td style={{padding:"12px 12px"}}><Tag filled color={STATUS_COLORS[venue.status]}>{venue.status}</Tag></td>
       <td style={{padding:"12px 12px"}}><div style={{display:"flex",gap:3}}>{venue.privateRoom&&<Tag color="#2A7A5A">P</Tag>}{venue.av&&<Tag color="#4A6FA5">AV</Tag>}{venue.dietary&&<Tag color="#6B4FA5">D</Tag>}</div></td>
@@ -598,7 +557,7 @@ function VenueTracker() {
     </tr>
   );
 
-  // ── DetailPanel ──
+  // ââ DetailPanel ââ
   const DetailPanel = ({venue}) => {
     const [ed,setEd] = useState({...venue});
     useEffect(()=>{setEd({...venue});},[venue.id]);
@@ -616,9 +575,9 @@ function VenueTracker() {
                   {Object.keys(REGIONS).map(r=><option key={r}>{r}</option>)}
                 </select>
               </div>
-            ):<p style={{margin:"3px 0 0",fontSize:13,color:"#6B6B65"}}>{venue.city}{venue.region?` · ${venue.region}`:""}</p>}
+            ):<p style={{margin:"3px 0 0",fontSize:13,color:"#6B6B65"}}>{venue.city}{venue.region?` Â· ${venue.region}`:""}</p>}
           </div>
-          <button onClick={()=>{setSelectedVenue(null);setIsEditing(false);}} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#A0A09A",padding:4}}>✕</button>
+          <button onClick={()=>{setSelectedVenue(null);setIsEditing(false);}} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#A0A09A",padding:4}}>â</button>
         </div>
         <div style={{padding:"20px 28px"}}>
           <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
@@ -644,14 +603,14 @@ function VenueTracker() {
                       style={{fontSize:13,color:"#4A6FA5",textDecoration:"none",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
                       onMouseEnter={e=>e.currentTarget.style.textDecoration="underline"}
                       onMouseLeave={e=>e.currentTarget.style.textDecoration="none"}>
-                      🔗 {venue.website}
+                      ð {venue.website}
                     </a>
                     <a href={venue.website} target="_blank" rel="noopener noreferrer"
                       style={{...btnP,padding:"6px 14px",fontSize:11,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>
-                      Visit Site ↗
+                      Visit Site â
                     </a>
                   </React.Fragment>
-                  :<span style={{fontSize:13,color:"#A0A09A"}}>—</span>}
+                  :<span style={{fontSize:13,color:"#A0A09A"}}>â</span>}
               </div>}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20}}>
@@ -663,7 +622,7 @@ function VenueTracker() {
             <div><label style={lbl}>Your Rating</label><div style={{marginTop:6}}><Stars rating={isEditing?ed.rating:venue.rating} interactive={isEditing} onRate={r=>setEd({...ed,rating:r})} size={18}/></div></div>
             <div><label style={lbl}>Last Used</label>
               {isEditing?<input type="date" value={ed.lastUsed} onChange={e=>setEd({...ed,lastUsed:e.target.value})} style={{...inp,marginTop:4}}/>
-                :<p style={{margin:"4px 0 0",fontSize:14,color:"#3A3A35"}}>{venue.lastUsed||"—"}</p>}
+                :<p style={{margin:"4px 0 0",fontSize:14,color:"#3A3A35"}}>{venue.lastUsed||"â"}</p>}
             </div>
           </div>
           <div style={{marginBottom:16}}>
@@ -678,7 +637,7 @@ function VenueTracker() {
               </div>
             ):(
               <div style={{display:"flex",gap:5,marginTop:6,flexWrap:"wrap"}}>
-                {venue.eventSizes.length?venue.eventSizes.map(s=><Tag key={s} color="#0A0A0A">{s}</Tag>):<span style={{fontSize:13,color:"#A0A09A"}}>—</span>}
+                {venue.eventSizes.length?venue.eventSizes.map(s=><Tag key={s} color="#0A0A0A">{s}</Tag>):<span style={{fontSize:13,color:"#A0A09A"}}>â</span>}
               </div>
             )}
           </div>
@@ -694,12 +653,12 @@ function VenueTracker() {
                 <input value={ed.contact} onChange={e=>setEd({...ed,contact:e.target.value})} placeholder="Name" style={{...inp,width:"50%"}}/>
                 <input value={ed.phone} onChange={e=>setEd({...ed,phone:e.target.value})} placeholder="Phone" style={{...inp,width:"50%"}}/>
               </div>
-            ):<p style={{margin:"4px 0 0",fontSize:13,color:"#3A3A35"}}>{venue.contact?`${venue.contact}${venue.phone?` · ${venue.phone}`:""}`:""||"—"}</p>}
+            ):<p style={{margin:"4px 0 0",fontSize:13,color:"#3A3A35"}}>{venue.contact?`${venue.contact}${venue.phone?` Â· ${venue.phone}`:""}`:""||"â"}</p>}
           </div>
           <div style={{marginBottom:20}}>
             <label style={lbl}>Notes</label>
             {isEditing?<textarea value={ed.notes} onChange={e=>setEd({...ed,notes:e.target.value})} rows={4} style={{...inp,marginTop:4,resize:"vertical"}}/>
-              :<p style={{margin:"4px 0 0",fontSize:13,color:"#5A5348",lineHeight:1.6,whiteSpace:"pre-line"}}>{venue.notes||"—"}</p>}
+              :<p style={{margin:"4px 0 0",fontSize:13,color:"#5A5348",lineHeight:1.6,whiteSpace:"pre-line"}}>{venue.notes||"â"}</p>}
           </div>
           <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
             {isEditing?(
@@ -710,9 +669,9 @@ function VenueTracker() {
             ):(
               <React.Fragment>
                 <button onClick={()=>setIsEditing(true)} style={btnP}>Edit</button>
-                <button onClick={()=>{setAiVenueCtx(venue);setAiModal("email");}} style={btnS}>✉ Email</button>
-                <button onClick={()=>{setAiVenueCtx(venue);setAiModal("menu");}} style={btnS}>🍽 Menu</button>
-                <button onClick={()=>duplicateVenue(venue)} style={btnS}>⧉ Dupe</button>
+                <button onClick={()=>{setAiVenueCtx(venue);setAiModal("email");}} style={btnS}>â Email</button>
+                <button onClick={()=>{setAiVenueCtx(venue);setAiModal("menu");}} style={btnS}>ð½ Menu</button>
+                <button onClick={()=>duplicateVenue(venue)} style={btnS}>â§ Dupe</button>
                 <button onClick={()=>{if(confirm("Delete this venue?"))deleteVenue(venue.id);}} style={{...btnS,color:"#C0392B",borderColor:"#C0392B"}}>Delete</button>
               </React.Fragment>
             )}
@@ -722,7 +681,7 @@ function VenueTracker() {
     );
   };
 
-  // ── AddForm ──
+  // ââ AddForm ââ
   const AddForm = () => {
     const [nv,setNv] = useState(emptyVenue());
     return (
@@ -767,7 +726,7 @@ function VenueTracker() {
               <input value={nv.contact} onChange={e=>setNv({...nv,contact:e.target.value})} placeholder="Contact name" style={inp}/>
               <input value={nv.phone} onChange={e=>setNv({...nv,phone:e.target.value})} placeholder="Phone" style={inp}/>
             </div>
-            <textarea value={nv.notes} onChange={e=>setNv({...nv,notes:e.target.value})} placeholder="Notes — booking tips, room details..." rows={3} style={{...inp,resize:"vertical"}}/>
+            <textarea value={nv.notes} onChange={e=>setNv({...nv,notes:e.target.value})} placeholder="Notes â booking tips, room details..." rows={3} style={{...inp,resize:"vertical"}}/>
             <div style={{display:"flex",gap:10}}>
               <button onClick={()=>{if(nv.name&&nv.city)addVenue(nv);}} style={{...btnP,opacity:nv.name&&nv.city?1:0.5}}>Add Venue</button>
               <button onClick={()=>setShowAddForm(false)} style={btnS}>Cancel</button>
@@ -778,16 +737,16 @@ function VenueTracker() {
     );
   };
 
-  // ── SettingsModal ──
+  // ââ SettingsModal ââ
   const SettingsModal = () => {
     const [tmp,setTmp] = useState(apiKey);
     const [testRes,setTestRes] = useState("");
     const [testing,setTesting] = useState(false);
     const test=async()=>{
-      if(!tmp.trim()){setTestRes("❌ No key entered");return;}
+      if(!tmp.trim()){setTestRes("â No key entered");return;}
       setTesting(true);setTestRes("Testing...");
-      try{const r=await fetch("/api/api-proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({apiKey:tmp.trim(),model:"claude-sonnet-4-20250514",max_tokens:50,messages:[{role:"user",content:"Say hi"}]})});setTestRes(r.ok?"✅ Key is valid!":"❌ Error "+r.status);}
-      catch(e){setTestRes("❌ "+e.message);}finally{setTesting(false);}
+      try{const r=await fetch("/api/api-proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({apiKey:tmp.trim(),model:"claude-sonnet-4-20250514",max_tokens:50,messages:[{role:"user",content:"Say hi"}]})});setTestRes(r.ok?"â Key is valid!":"â Error "+r.status);}
+      catch(e){setTestRes("â "+e.message);}finally{setTesting(false);}
     };
     return (
       <div style={{position:"fixed",inset:0,background:"rgba(10,10,10,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}
@@ -798,7 +757,7 @@ function VenueTracker() {
           <label style={{...lbl,display:"block",marginBottom:4}}>Anthropic API Key</label>
           <input type="password" value={tmp} onChange={e=>setTmp(e.target.value)} placeholder="sk-ant-..." style={{...inp,padding:"11px 14px",marginBottom:4}}/>
           <p style={{fontSize:11,color:"#A0A09A",margin:"0 0 14px"}}>Stored locally in this browser only.</p>
-          {testRes&&<div style={{padding:10,borderRadius:8,marginBottom:14,fontSize:13,background:testRes.startsWith("✅")?"#EDFAF3":testRes.startsWith("❌")?"#FFF5F5":"#FFFAEE",color:testRes.startsWith("✅")?"#1A5C3A":testRes.startsWith("❌")?"#8B2222":"#6B5500",border:`1px solid ${testRes.startsWith("✅")?"#B7E4C7":testRes.startsWith("❌")?"#E8C4C4":"#E8D9A8"}`}}>{testRes}</div>}
+          {testRes&&<div style={{padding:10,borderRadius:8,marginBottom:14,fontSize:13,background:testRes.startsWith("â")?"#EDFAF3":testRes.startsWith("â")?"#FFF5F5":"#FFFAEE",color:testRes.startsWith("â")?"#1A5C3A":testRes.startsWith("â")?"#8B2222":"#6B5500",border:`1px solid ${testRes.startsWith("â")?"#B7E4C7":testRes.startsWith("â")?"#E8C4C4":"#E8D9A8"}`}}>{testRes}</div>}
           <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
             <button onClick={()=>{const t=tmp.trim();setApiKey(t);try{localStorage.setItem(API_KEY_STORAGE,t)}catch(e){}setShowSettings(false);}} style={btnP}>Save Key</button>
             <button onClick={test} disabled={testing} style={{...btnS,opacity:testing?0.6:1}}>{testing?"Testing...":"Test Key"}</button>
@@ -810,7 +769,7 @@ function VenueTracker() {
     );
   };
 
-  // ── AiModal ──
+  // ââ AiModal ââ
   const AiModal = () => {
     if(!aiModal) return null;
     const titles={email:"Draft Outreach Email",brief:"Event Brief Generator",compare:"Venue Comparison",match:"Smart Venue Matching",menu:"Dietary & Menu Planner"};
@@ -820,7 +779,7 @@ function VenueTracker() {
         <div style={{background:"#FDFCFA",borderRadius:16,width:700,maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
           <div style={{padding:"20px 28px",borderBottom:"1px solid #E0E0D8",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
             <h2 style={{margin:0,fontSize:19,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>{titles[aiModal]}</h2>
-            <button onClick={()=>{setAiModal(null);setAiResult("");}} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#A0A09A"}}>✕</button>
+            <button onClick={()=>{setAiModal(null);setAiResult("");}} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#A0A09A"}}>â</button>
           </div>
           <div style={{padding:"20px 28px",overflowY:"auto",flex:1}}>
             {aiModal==="email"&&!aiResult&&(
@@ -866,7 +825,7 @@ function VenueTracker() {
               <div>
                 <p style={{fontSize:13,color:"#5A5348",margin:"0 0 10px"}}>Comparing {compareIds.size} venues:</p>
                 <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
-                  {venues.filter(v=>compareIds.has(v.id)).map(v=><Tag key={v.id} filled color="#0A0A0A">{v.name} — {v.city}</Tag>)}
+                  {venues.filter(v=>compareIds.has(v.id)).map(v=><Tag key={v.id} filled color="#0A0A0A">{v.name} â {v.city}</Tag>)}
                 </div>
                 <button onClick={generateComparison} disabled={aiLoading} style={{...btnP,opacity:aiLoading?0.5:1}}>Generate Comparison Report</button>
               </div>
@@ -885,8 +844,8 @@ function VenueTracker() {
               <div>
                 <div style={{background:"#fff",border:"1px solid #E0E0D8",borderRadius:10,padding:20,fontSize:13,color:"#3A3A35",lineHeight:1.7,whiteSpace:"pre-wrap",maxHeight:460,overflowY:"auto"}}>{aiResult}</div>
                 <div style={{display:"flex",gap:10,marginTop:14}}>
-                  <button onClick={()=>navigator.clipboard.writeText(aiResult)} style={btnP}>📋 Copy</button>
-                  <button onClick={()=>setAiResult("")} style={btnS}>← Back</button>
+                  <button onClick={()=>navigator.clipboard.writeText(aiResult)} style={btnP}>ð Copy</button>
+                  <button onClick={()=>setAiResult("")} style={btnS}>â Back</button>
                 </div>
               </div>
             )}
@@ -915,12 +874,12 @@ function VenueTracker() {
                 <p style={{margin:"1px 0 0",fontSize:10,textTransform:"uppercase",letterSpacing:"0.1em",color:"#888884"}}>{s.l}</p>
               </div>
             ))}
-            <button onClick={()=>setShowSettings(true)} style={{background:"none",border:"1px solid #333",borderRadius:8,color:"#888884",padding:"7px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>⚙ Settings</button>
-            <button onClick={exportCSV} style={{background:"none",border:"1px solid #333",borderRadius:8,color:"#888884",padding:"7px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>↓ CSV</button>
+            <button onClick={()=>setShowSettings(true)} style={{background:"none",border:"1px solid #333",borderRadius:8,color:"#888884",padding:"7px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>â Settings</button>
+            <button onClick={exportCSV} style={{background:"none",border:"1px solid #333",borderRadius:8,color:"#888884",padding:"7px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>â CSV</button>
           </div>
         </div>
         <div style={{display:"flex"}}>
-          {[{key:"tracker",label:"My Venues",icon:"◻"},{key:"aitools",label:"AI Tools",icon:"✦"}].map(tab=>(
+          {[{key:"tracker",label:"My Venues",icon:"â»"},{key:"aitools",label:"AI Tools",icon:"â¦"}].map(tab=>(
             <button key={tab.key} onClick={()=>setMode(tab.key)}
               style={{padding:"11px 26px",border:"none",borderRadius:"8px 8px 0 0",fontSize:13,fontWeight:700,cursor:"pointer",
                 background:mode===tab.key?"#F4F4F0":"transparent",color:mode===tab.key?"#0A0A0A":"#888884"}}>
@@ -935,14 +894,14 @@ function VenueTracker() {
         <div style={{padding:"0 40px 40px"}}>
           <div style={{background:"#FFFFFF",borderRadius:"0 12px 12px 12px",padding:"28px 32px",border:"1px solid #E0E0D8"}}>
             <h2 style={{margin:"0 0 4px",fontSize:19,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>AI-Powered Event Tools</h2>
-            <p style={{margin:"0 0 24px",fontSize:13,color:"#6B6B65"}}>Plan events, match venues, generate briefs — powered by your tracker data.</p>
+            <p style={{margin:"0 0 24px",fontSize:13,color:"#6B6B65"}}>Plan events, match venues, generate briefs â powered by your tracker data.</p>
             <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:16}}>
               {[
-                {icon:"🎯",title:"Smart Venue Matching",desc:`Describe your event and AI picks the best from your ${venues.length} tracked venues.`,action:()=>setAiModal("match"),active:true},
-                {icon:"📋",title:"Event Brief Generator",desc:"Full event plan with venue recs, menu, budget, and run of show.",action:()=>setAiModal("brief"),active:true},
-                {icon:"⚖️",title:"Venue Comparison",desc:compareIds.size>=2?`${compareIds.size} venues selected — generate report.`:`Select 2-5 venues on My Venues tab. (${compareIds.size} selected)`,action:()=>{if(compareIds.size>=2)setAiModal("compare");},active:compareIds.size>=2},
-                {icon:"✉️",title:"Draft Outreach Email",desc:"Open any venue and click '✉ Email' to generate 3 booking email versions.",action:null,active:false},
-                {icon:"🍽️",title:"Dietary & Menu Planner",desc:"Open any venue and click '🍽 Menu' for custom menu suggestions.",action:null,active:false},
+                {icon:"ð¯",title:"Smart Venue Matching",desc:`Describe your event and AI picks the best from your ${venues.length} tracked venues.`,action:()=>setAiModal("match"),active:true},
+                {icon:"ð",title:"Event Brief Generator",desc:"Full event plan with venue recs, menu, budget, and run of show.",action:()=>setAiModal("brief"),active:true},
+                {icon:"âï¸",title:"Venue Comparison",desc:compareIds.size>=2?`${compareIds.size} venues selected â generate report.`:`Select 2-5 venues on My Venues tab. (${compareIds.size} selected)`,action:()=>{if(compareIds.size>=2)setAiModal("compare");},active:compareIds.size>=2},
+                {icon:"âï¸",title:"Draft Outreach Email",desc:"Open any venue and click 'â Email' to generate 3 booking email versions.",action:null,active:false},
+                {icon:"ð½ï¸",title:"Dietary & Menu Planner",desc:"Open any venue and click 'ð½ Menu' for custom menu suggestions.",action:null,active:false},
               ].map(card=>(
                 <div key={card.title} onClick={card.action||undefined}
                   style={{background:"#F4F4F0",borderRadius:10,padding:20,border:"1.5px solid #E0E0D8",transition:"all 0.2s",cursor:card.action?"pointer":"default",opacity:card.action?1:0.55}}
@@ -966,7 +925,7 @@ function VenueTracker() {
             <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
               <div style={{position:"relative",flex:"0 0 210px"}}>
                 <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search venues or cities..." style={{...inp,paddingLeft:32}}/>
-                <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"#A0A09A",fontSize:15}}>⌕</span>
+                <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"#A0A09A",fontSize:15}}>â</span>
               </div>
               <select value={filterRegion} onChange={e=>setFilterRegion(e.target.value)} style={sel}>
                 <option value="All">All Regions</option>
@@ -984,12 +943,12 @@ function VenueTracker() {
                 {["All","Yes","No"].map(v=>(
                   <button key={v} onClick={()=>setFilterVisited(v)}
                     style={{padding:"6px 12px",border:"none",background:filterVisited===v?"#0A0A0A":"#FFFFFF",color:filterVisited===v?"#EBF245":"#6B6B65",fontSize:11,cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>
-                    {v==="All"?"All":v==="Yes"?"✓ Visited":"Not Visited"}
+                    {v==="All"?"All":v==="Yes"?"â Visited":"Not Visited"}
                   </button>
                 ))}
               </div>
               <div style={{display:"flex",alignItems:"center",gap:5}}>
-                <span style={{fontSize:11,color:"#6B6B65",whiteSpace:"nowrap"}}>≤ $</span>
+                <span style={{fontSize:11,color:"#6B6B65",whiteSpace:"nowrap"}}>â¤ $</span>
                 <input type="range" min={50} max={300} value={budgetMax} onChange={e=>setBudgetMax(+e.target.value)} style={{width:80}}/>
                 <span style={{fontSize:12,fontWeight:700,color:"#0A0A0A",minWidth:32}}>{budgetMax}</span>
               </div>
@@ -1011,13 +970,13 @@ function VenueTracker() {
                 <div style={{display:"flex",border:"1.5px solid #D8D8D0",borderRadius:8,overflow:"hidden"}}>
                   {["grid","table"].map(v=>(
                     <button key={v} onClick={()=>setView(v)} style={{padding:"5px 12px",border:"none",background:view===v?"#0A0A0A":"#FFFFFF",color:view===v?"#EBF245":"#6B6B65",fontSize:12,cursor:"pointer",fontWeight:700}}>
-                      {v==="grid"?"◻ Grid":"☰ Table"}
+                      {v==="grid"?"â» Grid":"â° Table"}
                     </button>
                   ))}
                 </div>
                 <button onClick={()=>setShowDiscover(d=>!d)}
                   style={{...btnS,padding:"7px 16px",fontSize:12,background:showDiscover?"#0A0A0A":"transparent",color:showDiscover?"#EBF245":"#0A0A0A"}}>
-                  {showDiscover?"✕ Close":"⌕ Discover"}
+                  {showDiscover?"â Close":"â Discover"}
                 </button>
                 <button onClick={()=>setShowAddForm(true)} style={btnP}>+ Add Venue</button>
               </div>
@@ -1045,7 +1004,7 @@ function VenueTracker() {
             )}
             {filtered.length===0&&(
               <div style={{textAlign:"center",padding:"60px 20px",color:"#A0A09A"}}>
-                <p style={{fontSize:44,margin:"0 0 10px"}}>🍽</p>
+                <p style={{fontSize:44,margin:"0 0 10px"}}>ð½</p>
                 <p style={{fontSize:16,fontFamily:"'Playfair Display',serif",color:"#3A3A35"}}>No venues match your filters</p>
               </div>
             )}
@@ -1084,7 +1043,7 @@ function VenueTracker() {
           <div style={{display:"flex",gap:8}}>
             <button onClick={()=>{if(compareIds.size>=2){setMode("aitools");setAiModal("compare");}}} disabled={compareIds.size<2}
               style={{...btnP,padding:"7px 18px",fontSize:12,background:compareIds.size>=2?"#EBF245":"#333",color:compareIds.size>=2?"#0A0A0A":"#6B6B65"}}>
-              ⚖️ Compare{compareIds.size<2?` (need ${2-compareIds.size} more)`:""}
+              âï¸ Compare{compareIds.size<2?` (need ${2-compareIds.size} more)`:""}
             </button>
             <button onClick={()=>setCompareIds(new Set())} style={{...btnS,padding:"7px 14px",fontSize:12,color:"#888884",borderColor:"#333"}}>Clear</button>
           </div>
