@@ -934,42 +934,45 @@ IMPORTANT RULES:
     );
   };
 
-  const VenueCard = useCallback(({venue}) => (
+const VenueCard = useCallback(({venue}) => (
     <div style={{position:"relative"}}>
       <div onClick={e=>{e.stopPropagation();toggleCompare(venue.id);}}
-        style={{position:"absolute",top:10,right:10,width:22,height:22,borderRadius:4,border:`2px solid ${compareIds.has(venue.id)?"#8B7355":"#D5CEC4"}`,background:compareIds.has(venue.id)?"#8B7355":"#fff",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:2,fontSize:12,color:"#fff",transition:"all 0.15s"}}>
+        style={{position:"absolute",top:10,right:10,width:22,height:22,borderRadius:4,border:`2px solid ${compareIds.has(venue.id)?"#0A0A0A":"rgba(255,255,255,0.7)"}`,background:compareIds.has(venue.id)?"#EBF245":"rgba(0,0,0,0.3)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:2,fontSize:12,color:"#0A0A0A",transition:"all 0.15s"}}>
         {compareIds.has(venue.id)&&"✓"}
       </div>
       <div onClick={()=>{setSelectedVenue(venue);setIsEditing(false);}}
-        style={{background:"#fff",borderRadius:12,padding:22,border:`1.5px solid ${selectedVenue?.id===venue.id?"#C8B89A":"#E8E2D9"}`,cursor:"pointer",transition:"all 0.2s",boxShadow:selectedVenue?.id===venue.id?"0 4px 20px rgba(139,115,85,0.15)":"0 1px 4px rgba(0,0,0,0.04)"}}
-        onMouseEnter={e=>{e.currentTarget.style.borderColor="#C8B89A";e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 24px rgba(139,115,85,0.12)";}}
-        onMouseLeave={e=>{e.currentTarget.style.borderColor=selectedVenue?.id===venue.id?"#C8B89A":"#E8E2D9";e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow=selectedVenue?.id===venue.id?"0 4px 20px rgba(139,115,85,0.15)":"0 1px 4px rgba(0,0,0,0.04)";}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-          <div style={{flex:1,minWidth:0}}>
-            <h3 style={{margin:0,fontSize:16,fontFamily:"'Playfair Display',serif",color:"#2C2622",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{venue.name}</h3>
-            <p style={{margin:"3px 0 0",fontSize:13,color:"#8B8279"}}>{venue.city}{venue.region?` · ${venue.region}`:""}</p>
+        style={{background:"#FFFFFF",borderRadius:12,border:`1.5px solid ${selectedVenue?.id===venue.id?"#0A0A0A":"#E0E0D8"}`,cursor:"pointer",transition:"all 0.2s",overflow:"hidden",boxShadow:selectedVenue?.id===venue.id?"0 4px 20px rgba(0,0,0,0.12)":"0 1px 4px rgba(0,0,0,0.04)"}}
+        onMouseEnter={e=>{e.currentTarget.style.borderColor="#0A0A0A";e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 28px rgba(0,0,0,0.1)";}}
+        onMouseLeave={e=>{e.currentTarget.style.borderColor=selectedVenue?.id===venue.id?"#0A0A0A":"#E0E0D8";e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow=selectedVenue?.id===venue.id?"0 4px 20px rgba(0,0,0,0.12)":"0 1px 4px rgba(0,0,0,0.04)";}}>
+        <VenuePhoto name={venue.name} city={venue.city} height={150}/>
+        <div style={{padding:"14px 16px"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+            <div style={{flex:1,minWidth:0}}>
+              <h3 style={{margin:0,fontSize:15,fontFamily:"'Playfair Display',serif",color:"#0A0A0A",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{venue.name}</h3>
+              <p style={{margin:"2px 0 0",fontSize:12,color:"#6B6B65"}}>{venue.city}{venue.region?` · ${venue.region}`:""}</p>
+            </div>
+            <Tag filled color={STATUS_COLORS[venue.status]}>{venue.status}</Tag>
           </div>
-          <Tag filled color={STATUS_COLORS[venue.status]}>{venue.status}</Tag>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:12}}>
-          <span style={{fontSize:20,fontWeight:600,color:"#2C2622",fontFamily:"'Playfair Display',serif"}}>${venue.pricePerHead}</span>
-          <span style={{fontSize:12,color:"#A09889"}}>/head</span>
-          {venue.visited&&<span style={{fontSize:11,color:"#2D8659",fontWeight:600,background:"#F0F9F4",padding:"2px 8px",borderRadius:10,border:"1px solid #B7E4C7"}}>✓ Visited</span>}
-          <div style={{marginLeft:"auto"}}><Stars rating={venue.exclusivity} size={14}/></div>
-        </div>
-        {venue.website&&<p style={{fontSize:11,color:"#4A6FA5",margin:"0 0 8px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🔗 {venue.website}</p>}
-        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-          {venue.privateRoom&&<Tag color="#5B8A72">Private</Tag>}
-          {venue.av&&<Tag color="#4A6FA5">AV</Tag>}
-          {venue.dietary&&<Tag color="#7B68AE">Dietary</Tag>}
-          {venue.eventSizes.map(s=><Tag key={s} color="#B8A48E">{s.split(" ")[0]}</Tag>)}
-        </div>
-        {venue.rating>0&&(
-          <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #F0ECE6",display:"flex",alignItems:"center",gap:6}}>
-            <span style={{fontSize:11,color:"#A09889",textTransform:"uppercase",letterSpacing:"0.06em"}}>Rating</span>
-            <Stars rating={venue.rating} size={12}/>
+          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
+            <span style={{fontSize:18,fontWeight:700,color:"#0A0A0A",fontFamily:"'Playfair Display',serif"}}>${venue.pricePerHead}</span>
+            <span style={{fontSize:11,color:"#A0A09A"}}>/head</span>
+            {venue.visited&&<span style={{fontSize:11,color:"#1A5C3A",fontWeight:700,background:"#EDFAF3",padding:"2px 8px",borderRadius:6,border:"1px solid #B7E4C7"}}>✓ Visited</span>}
+            <div style={{marginLeft:"auto"}}><Stars rating={venue.exclusivity} size={13}/></div>
           </div>
-        )}
+          {venue.website&&<p style={{fontSize:11,color:"#4A6FA5",margin:"0 0 8px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🔗 {venue.website}</p>}
+          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+            {venue.privateRoom&&<Tag color="#2A7A5A">Private</Tag>}
+            {venue.av&&<Tag color="#4A6FA5">AV</Tag>}
+            {venue.dietary&&<Tag color="#6B4FA5">Dietary</Tag>}
+            {venue.eventSizes.map(s=><Tag key={s} color="#6B6B65">{s.split(" ")[0]}</Tag>)}
+          </div>
+          {venue.rating>0&&(
+            <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #F4F4F0",display:"flex",alignItems:"center",gap:6}}>
+              <span style={{fontSize:11,color:"#A0A09A",textTransform:"uppercase",letterSpacing:"0.06em"}}>Rating</span>
+              <Stars rating={venue.rating} size={12}/>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   ),[selectedVenue,compareIds,toggleCompare]);
