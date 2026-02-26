@@ -507,7 +507,7 @@ function VenueTracker() {
         onMouseEnter={e=>{e.currentTarget.style.borderColor="#0A0A0A";e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 28px rgba(0,0,0,0.1)";}}
         onMouseLeave={e=>{e.currentTarget.style.borderColor=selectedVenue?.id===venue.id?"#0A0A0A":"#E0E0D8";e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow=selectedVenue?.id===venue.id?"0 4px 20px rgba(0,0,0,0.12)":"0 1px 4px rgba(0,0,0,0.04)";}}>
         <div style={{padding:"14px 16px"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems"flex-start",marginBottom:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
             <div style={{flex:1,minWidth:0}}>
               <h3 style={{margin:0,fontSize:15,fontFamily:"'Playfair Display',serif",color:"#0A0A0A",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{venue.name}</h3>
               <p style={{margin:"2px 0 0",fontSize:12,color:"#6B6B65"}}>{venue.city}{venue.region?` Â· ${venue.region}`:""}</p>
