@@ -7,9 +7,9 @@
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🍷</text></svg>">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+  <script src="https://cdnjs.cloudflar.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
-  <style>
+  <style
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'DM Sans',sans-serif;background:#F4F4F0}
     ::-webkit-scrollbar{width:6px}
@@ -449,7 +449,7 @@ function VenueTracker() {
   const searchOneCity = useCallback(async(city,vtype)=>{
     const res = await fetch("/api/api-proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       apiKey,model:"claude-sonnet-4-20250514",max_tokens:8192,
-      messages:[{role:"user",content:`List 15-20 real, currently operating ${vtype} in ${city} suited for corporate dinners.\n\nReturn ONLY a raw JSON array.\n\nEach object: {"name":"","cuisine":"","priceRange":"$$$$","estimatedPricePerHead":150,"privateRoom":true,"capacity":"10-40","description":"","neighborhood":"","knownFor":"","website":"https://... or empty","sources":""}\n\nOnly real venues. Output ONLY the JSON array.`}]
+      messages:[{role:"user",content:`List 15-20 real, currently operating ${vtype} in ${city} suited for corporate dinners.\n\nReturn ONLY a raw JSON array.\n\nEach object: {"name":"","cuisine":"","priceRange":"$$$$","estimatedPricePerHead":150,"privateRoom":true,"capacity":"10-40","description":"","neighborhood":"","knownFor":"","website":"https://venue-official-website.com (REQUIRED - always provide the real official website URL, never leave blank)","sources":""}\n\nCRITICAL: The website field must always be a real, working URL (e.g. https://www.restaurant.com). Never use empty string or placeholder. Only real venues. Output ONLY the JSON array.`}]
     })});
     if(!res.ok) throw new Error(`API error ${res.status}`);
     const data = await res.json();
@@ -548,7 +548,7 @@ function VenueTracker() {
         onMouseLeave={e=>{e.currentTarget.style.borderColor=selectedVenue?.id===venue.id?"#0A0A0A":"#E0E0D8";e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow=selectedVenue?.id===venue.id?"0 4px 20px rgba(0,0,0,0.12)":"0 1px 4px rgba(0,0,0,0.04)";}}>
         <VenuePhoto name={venue.name} city={venue.city} height={150}/>
         <div style={{padding:"14px 16px"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems"flex-start",marginBottom:8}}>
             <div style={{flex:1,minWidth:0}}>
               <h3 style={{margin:0,fontSize:15,fontFamily:"'Playfair Display',serif",color:"#0A0A0A",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{venue.name}</h3>
               <p style={{margin:"2px 0 0",fontSize:12,color:"#6B6B65"}}>{venue.city}{venue.region?` · ${venue.region}`:""}</p>
