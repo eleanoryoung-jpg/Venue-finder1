@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Venue Tracker â Field Marketing</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>ð·</text></svg>">
+  <title>Venue Tracker Ã¢ÂÂ Field Marketing</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>Ã°ÂÂÂ·</text></svg>">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+  
   <style
     *{margin:0;padding:0;box-sizing:border-box}
     body{font-family:'DM Sans',sans-serif;background:#F4F4F0}
@@ -23,1036 +23,3503 @@
     @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
     select,input,textarea,button{font-family:'DM Sans',sans-serif}
   </style>
-<script type="text/babel">
-const {useState,useMemo,useEffect,useCallback,useRef} = React;
+<script>
+const {
+  useState,
+  useMemo,
+  useEffect,
+  useCallback,
+  useRef
+} = React;
 
-// âââ CONSTANTS âââ
+// Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ CONSTANTS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 const REGIONS = {
-  "Northeast":["New York","Boston","Philadelphia","Washington DC","Pittsburgh"],
-  "Southeast":["Atlanta","Miami","Charlotte","Nashville","Raleigh"],
-  "Midwest":["Chicago","Detroit","Minneapolis","Columbus","Indianapolis"],
-  "Southwest":["Dallas","Houston","Austin","Phoenix","Denver"],
-  "West Coast":["San Francisco","Los Angeles","Seattle","Portland","San Diego"],
+  "Northeast": ["New York", "Boston", "Philadelphia", "Washington DC", "Pittsburgh"],
+  "Southeast": ["Atlanta", "Miami", "Charlotte", "Nashville", "Raleigh"],
+  "Midwest": ["Chicago", "Detroit", "Minneapolis", "Columbus", "Indianapolis"],
+  "Southwest": ["Dallas", "Houston", "Austin", "Phoenix", "Denver"],
+  "West Coast": ["San Francisco", "Los Angeles", "Seattle", "Portland", "San Diego"]
 };
-const EVENT_SIZES = ["Intimate (8-20)","Mid-size (20-50)","Large (50-100+)"];
-const STATUSES = ["Prospect","Contacted","Booked","Used","Archived"];
-const STATUS_COLORS = {Prospect:"#6B6B65",Contacted:"#2A7A5A",Booked:"#0A0A0A",Used:"#1A5C3A",Archived:"#AAAAAA"};
+const EVENT_SIZES = ["Intimate (8-20)", "Mid-size (20-50)", "Large (50-100+)"];
+const STATUSES = ["Prospect", "Contacted", "Booked", "Used", "Archived"];
+const STATUS_COLORS = {
+  Prospect: "#6B6B65",
+  Contacted: "#2A7A5A",
+  Booked: "#0A0A0A",
+  Used: "#1A5C3A",
+  Archived: "#AAAAAA"
+};
 const STORAGE_KEY = "venue-tracker-data-v2";
 const API_KEY_STORAGE = "venue-tracker-api-key";
 // Load persisted photo cache from localStorage
 const photoCache = (() => {
-  try { return JSON.parse(localStorage.getItem(PHOTO_CACHE_KEY)) || {}; }
-  catch(e) { return {}; }
+  try {
+    return JSON.parse(localStorage.getItem(PHOTO_CACHE_KEY)) || {};
+  } catch (e) {
+    return {};
+  }
 })();
 const savePhotoCache = () => {
-  try { localStorage.setItem(PHOTO_CACHE_KEY, JSON.stringify(photoCache)); }
-  catch(e) {}
+  try {
+    localStorage.setItem(PHOTO_CACHE_KEY, JSON.stringify(photoCache));
+  } catch (e) {}
 };
-
-const DISCOVER_TYPES = [
-  {value:"upscale restaurants with private dining rooms",label:"Upscale restaurants with private dining"},
-  {value:"Michelin star restaurants with private dining rooms",label:"Michelin Star restaurants"},
-  {value:"fine dining restaurants for executive dinners",label:"Fine dining for executive dinners"},
-  {value:"trendy restaurants with event spaces for networking",label:"Trendy venues for networking events"},
-  {value:"restaurants and venues with large private event spaces for 50+ guests",label:"Large event spaces (50+)"},
-];
-
+const DISCOVER_TYPES = [{
+  value: "upscale restaurants with private dining rooms",
+  label: "Upscale restaurants with private dining"
+}, {
+  value: "Michelin star restaurants with private dining rooms",
+  label: "Michelin Star restaurants"
+}, {
+  value: "fine dining restaurants for executive dinners",
+  label: "Fine dining for executive dinners"
+}, {
+  value: "trendy restaurants with event spaces for networking",
+  label: "Trendy venues for networking events"
+}, {
+  value: "restaurants and venues with large private event spaces for 50+ guests",
+  label: "Large event spaces (50+)"
+}];
 const loadVenues = () => {
   try {
     const s = localStorage.getItem(STORAGE_KEY);
     if (s) return JSON.parse(s);
     const old = localStorage.getItem("venue-tracker-data");
-    if (old) return JSON.parse(old).map(v=>({...v,visited:v.status==="Visited",website:v.website||""}));
-  } catch(e){}
-  return [
-    {id:1,name:"The Capital Grille",city:"New York",region:"Northeast",eventSizes:["Intimate (8-20)","Mid-size (20-50)"],pricePerHead:185,privateRoom:true,av:false,dietary:true,exclusivity:4,status:"Used",visited:true,website:"https://www.thecapitalgrille.com",notes:"Excellent private dining room on 2nd floor. Used for Q3 CISO dinner â great feedback.",contact:"Sarah M.",phone:"(212) 555-0134",lastUsed:"2025-09-15",rating:5},
-    {id:2,name:"RPM Italian",city:"Chicago",region:"Midwest",eventSizes:["Intimate (8-20)","Mid-size (20-50)"],pricePerHead:165,privateRoom:true,av:false,dietary:true,exclusivity:5,status:"Used",visited:true,website:"https://www.rpmrestaurants.com/rpm-italian",notes:"Hard to get the private room â book 6+ weeks out. Clients love it.",contact:"Marco D.",phone:"(312) 555-0198",lastUsed:"2025-08-22",rating:5},
-    {id:3,name:"Nobu Dallas",city:"Dallas",region:"Southwest",eventSizes:["Intimate (8-20)","Mid-size (20-50)","Large (50-100+)"],pricePerHead:210,privateRoom:true,av:true,dietary:true,exclusivity:5,status:"Booked",visited:false,website:"https://www.noburestaurants.com/dallas",notes:"Booked for Feb exec dinner. Multiple private spaces available.",contact:"Jennifer L.",phone:"(214) 555-0267",lastUsed:"",rating:0},
-    {id:4,name:"The Sloane",city:"San Francisco",region:"West Coast",eventSizes:["Mid-size (20-50)","Large (50-100+)"],pricePerHead:140,privateRoom:true,av:true,dietary:true,exclusivity:3,status:"Contacted",visited:true,website:"",notes:"Modern event space with great AV setup. Rooftop option for cocktail hour.",contact:"David K.",phone:"(415) 555-0312",lastUsed:"",rating:4},
-    {id:5,name:"STK Atlanta",city:"Atlanta",region:"Southeast",eventSizes:["Intimate (8-20)","Mid-size (20-50)"],pricePerHead:155,privateRoom:true,av:false,dietary:true,exclusivity:4,status:"Prospect",visited:false,website:"",notes:"Recommended by sales team. Need to do site visit.",contact:"",phone:"",lastUsed:"",rating:0},
-    {id:6,name:"Mbar at Mandarin Oriental",city:"Miami",region:"Southeast",eventSizes:["Intimate (8-20)"],pricePerHead:225,privateRoom:true,av:false,dietary:true,exclusivity:5,status:"Contacted",visited:false,website:"",notes:"Ultra-premium. Perfect for C-suite intimate dinners. Ocean views.",contact:"Isabella R.",phone:"(305) 555-0445",lastUsed:"",rating:0},
-    {id:7,name:"The Warehouse District Venue",city:"Minneapolis",region:"Midwest",eventSizes:["Mid-size (20-50)","Large (50-100+)"],pricePerHead:95,privateRoom:true,av:true,dietary:true,exclusivity:2,status:"Used",visited:true,website:"",notes:"Great value for larger field events. Full AV with projector and sound.",contact:"Tom H.",phone:"(612) 555-0178",lastUsed:"2025-07-10",rating:4},
-    {id:8,name:"Ocean Prime",city:"Denver",region:"Southwest",eventSizes:["Intimate (8-20)","Mid-size (20-50)"],pricePerHead:170,privateRoom:true,av:false,dietary:true,exclusivity:4,status:"Prospect",visited:false,website:"https://www.oceanprime.com",notes:"Corporate dining favorite in LoDo. Multiple private rooms.",contact:"",phone:"",lastUsed:"",rating:0},
-  ];
+    if (old) return JSON.parse(old).map(v => ({
+      ...v,
+      visited: v.status === "Visited",
+      website: v.website || ""
+    }));
+  } catch (e) {}
+  return [{
+    id: 1,
+    name: "The Capital Grille",
+    city: "New York",
+    region: "Northeast",
+    eventSizes: ["Intimate (8-20)", "Mid-size (20-50)"],
+    pricePerHead: 185,
+    privateRoom: true,
+    av: false,
+    dietary: true,
+    exclusivity: 4,
+    status: "Used",
+    visited: true,
+    website: "https://www.thecapitalgrille.com",
+    notes: "Excellent private dining room on 2nd floor. Used for Q3 CISO dinner Ã¢ÂÂ great feedback.",
+    contact: "Sarah M.",
+    phone: "(212) 555-0134",
+    lastUsed: "2025-09-15",
+    rating: 5
+  }, {
+    id: 2,
+    name: "RPM Italian",
+    city: "Chicago",
+    region: "Midwest",
+    eventSizes: ["Intimate (8-20)", "Mid-size (20-50)"],
+    pricePerHead: 165,
+    privateRoom: true,
+    av: false,
+    dietary: true,
+    exclusivity: 5,
+    status: "Used",
+    visited: true,
+    website: "https://www.rpmrestaurants.com/rpm-italian",
+    notes: "Hard to get the private room Ã¢ÂÂ book 6+ weeks out. Clients love it.",
+    contact: "Marco D.",
+    phone: "(312) 555-0198",
+    lastUsed: "2025-08-22",
+    rating: 5
+  }, {
+    id: 3,
+    name: "Nobu Dallas",
+    city: "Dallas",
+    region: "Southwest",
+    eventSizes: ["Intimate (8-20)", "Mid-size (20-50)", "Large (50-100+)"],
+    pricePerHead: 210,
+    privateRoom: true,
+    av: true,
+    dietary: true,
+    exclusivity: 5,
+    status: "Booked",
+    visited: false,
+    website: "https://www.noburestaurants.com/dallas",
+    notes: "Booked for Feb exec dinner. Multiple private spaces available.",
+    contact: "Jennifer L.",
+    phone: "(214) 555-0267",
+    lastUsed: "",
+    rating: 0
+  }, {
+    id: 4,
+    name: "The Sloane",
+    city: "San Francisco",
+    region: "West Coast",
+    eventSizes: ["Mid-size (20-50)", "Large (50-100+)"],
+    pricePerHead: 140,
+    privateRoom: true,
+    av: true,
+    dietary: true,
+    exclusivity: 3,
+    status: "Contacted",
+    visited: true,
+    website: "",
+    notes: "Modern event space with great AV setup. Rooftop option for cocktail hour.",
+    contact: "David K.",
+    phone: "(415) 555-0312",
+    lastUsed: "",
+    rating: 4
+  }, {
+    id: 5,
+    name: "STK Atlanta",
+    city: "Atlanta",
+    region: "Southeast",
+    eventSizes: ["Intimate (8-20)", "Mid-size (20-50)"],
+    pricePerHead: 155,
+    privateRoom: true,
+    av: false,
+    dietary: true,
+    exclusivity: 4,
+    status: "Prospect",
+    visited: false,
+    website: "",
+    notes: "Recommended by sales team. Need to do site visit.",
+    contact: "",
+    phone: "",
+    lastUsed: "",
+    rating: 0
+  }, {
+    id: 6,
+    name: "Mbar at Mandarin Oriental",
+    city: "Miami",
+    region: "Southeast",
+    eventSizes: ["Intimate (8-20)"],
+    pricePerHead: 225,
+    privateRoom: true,
+    av: false,
+    dietary: true,
+    exclusivity: 5,
+    status: "Contacted",
+    visited: false,
+    website: "",
+    notes: "Ultra-premium. Perfect for C-suite intimate dinners. Ocean views.",
+    contact: "Isabella R.",
+    phone: "(305) 555-0445",
+    lastUsed: "",
+    rating: 0
+  }, {
+    id: 7,
+    name: "The Warehouse District Venue",
+    city: "Minneapolis",
+    region: "Midwest",
+    eventSizes: ["Mid-size (20-50)", "Large (50-100+)"],
+    pricePerHead: 95,
+    privateRoom: true,
+    av: true,
+    dietary: true,
+    exclusivity: 2,
+    status: "Used",
+    visited: true,
+    website: "",
+    notes: "Great value for larger field events. Full AV with projector and sound.",
+    contact: "Tom H.",
+    phone: "(612) 555-0178",
+    lastUsed: "2025-07-10",
+    rating: 4
+  }, {
+    id: 8,
+    name: "Ocean Prime",
+    city: "Denver",
+    region: "Southwest",
+    eventSizes: ["Intimate (8-20)", "Mid-size (20-50)"],
+    pricePerHead: 170,
+    privateRoom: true,
+    av: false,
+    dietary: true,
+    exclusivity: 4,
+    status: "Prospect",
+    visited: false,
+    website: "https://www.oceanprime.com",
+    notes: "Corporate dining favorite in LoDo. Multiple private rooms.",
+    contact: "",
+    phone: "",
+    lastUsed: "",
+    rating: 0
+  }];
 };
-
-const guessRegion = (city) => {
+const guessRegion = city => {
   const cl = city.toLowerCase();
-  for (const [r,cs] of Object.entries(REGIONS)) if (cs.some(c=>cl.includes(c.toLowerCase())||c.toLowerCase().includes(cl))) return r;
+  for (const [r, cs] of Object.entries(REGIONS)) if (cs.some(c => cl.includes(c.toLowerCase()) || c.toLowerCase().includes(cl))) return r;
   return "";
 };
-const emptyVenue = () => ({id:Date.now(),name:"",city:"",region:"",eventSizes:[],pricePerHead:0,privateRoom:false,av:false,dietary:false,exclusivity:0,status:"Prospect",visited:false,website:"",notes:"",contact:"",phone:"",lastUsed:"",rating:0});
-
-// âââ STYLES âââ
-const sel = {padding:"8px 12px",borderRadius:8,border:"1.5px solid #D8D8D0",background:"#FFFFFF",fontSize:13,fontFamily:"'DM Sans',sans-serif",color:"#0A0A0A",outline:"none",cursor:"pointer",minWidth:130,boxSizing:"border-box"};
-const inp = {...sel,cursor:"text",width:"100%"};
-const btnP = {padding:"10px 24px",borderRadius:8,border:"none",background:"#0A0A0A",color:"#EBF245",fontSize:13,fontFamily:"'DM Sans',sans-serif",fontWeight:700,cursor:"pointer",letterSpacing:"0.02em"};
-const btnS = {...btnP,background:"transparent",color:"#0A0A0A",border:"1.5px solid #0A0A0A"};
-const lbl = {fontSize:11,textTransform:"uppercase",letterSpacing:"0.08em",color:"#6B6B65",fontFamily:"'DM Sans',sans-serif",fontWeight:600};
-
-// âââ SHARED COMPONENTS âââ
-const Stars = ({rating,onRate,size=16,interactive=false}) => (
-  <div style={{display:"flex",gap:2}}>
-    {[1,2,3,4,5].map(s=>(
-      <span key={s} onClick={()=>interactive&&onRate&&onRate(s)}
-        style={{cursor:interactive?"pointer":"default",fontSize:size,color:s<=rating?"#0A0A0A":"#D0D0C8",userSelect:"none"}}>â</span>
-    ))}
-  </div>
-);
-
-const Tag = ({children,color="#0A0A0A",filled=false}) => (
-  <span style={{display:"inline-block",padding:"2px 10px",borderRadius:6,fontSize:11,fontWeight:600,letterSpacing:"0.02em",
-    background:filled?color:"transparent",color:filled?(color==="#0A0A0A"?"#EBF245":"#fff"):color,
-    border:`1.5px solid ${color}`,lineHeight:"20px",whiteSpace:"nowrap"}}>{children}</span>
-);
-
-const Toggle = ({checked,onChange,label}) => (
-  <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,color:"#3A3A35"}}>
-    <div onClick={()=>onChange(!checked)} style={{width:36,height:20,borderRadius:10,background:checked?"#0A0A0A":"#D0D0C8",position:"relative",cursor:"pointer",transition:"background 0.2s"}}>
-      <div style={{width:16,height:16,borderRadius:8,background:checked?"#EBF245":"#fff",position:"absolute",top:2,left:checked?18:2,transition:"left 0.2s",boxShadow:"0 1px 3px rgba(0,0,0,0.15)"}}/>
-    </div>
-    {label}
-  </label>
-);
-
-const Spinner = ({size=32}) => (
-  <div style={{width:size,height:size,border:"3px solid #E0E0D8",borderTopColor:"#0A0A0A",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>
-);
-
-// âââ VENUE PHOTO âââ
-const DiscCard = ({dv,savedIds,venues,saveDiscovered}) => {
-  const isSaved = savedIds.has(dv._id);
-  const alreadyIn = venues.some(v=>v.name.toLowerCase()===dv.name.toLowerCase());
-  return (
-    <div style={{background:"#fff",borderRadius:10,padding:16,border:"1.5px solid #E0E0D8",marginBottom:10,animation:"fadeIn 0.3s ease"}}
-      onMouseEnter={e=>e.currentTarget.style.borderColor="#0A0A0A"}
-      onMouseLeave={e=>e.currentTarget.style.borderColor="#E0E0D8"}>
-      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-        <div style={{flex:1}}>
-          <h3 style={{margin:0,fontSize:15,fontFamily:"'Playfair Display',serif",color:"#0A0A0A",fontWeight:600}}>{dv.name}</h3>
-          <p style={{margin:"2px 0 0",fontSize:12,color:"#6B6B65"}}>{[dv.neighborhood,dv.cuisine].filter(Boolean).join(" Â· ")}</p>
-        </div>
-        <span style={{fontSize:13,fontWeight:700,color:"#0A0A0A",whiteSpace:"nowrap",marginLeft:8}}>{dv.priceRange}</span>
-      </div>
-      <p style={{fontSize:12,color:"#5A5348",lineHeight:1.5,margin:"8px 0 10px"}}>{dv.description}</p>
-      <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
-        {dv.privateRoom&&<Tag color="#2A7A5A">Private Dining</Tag>}
-        {dv.capacity&&<Tag color="#4A6FA5">{dv.capacity}</Tag>}
-        {dv.estimatedPricePerHead>0&&<Tag color="#0A0A0A">~${dv.estimatedPricePerHead}/head</Tag>}
-      </div>
-      {dv.knownFor&&<p style={{fontSize:11,color:"#A0A09A",fontStyle:"italic",margin:"0 0 4px"}}>Known for: {dv.knownFor}</p>}
-      {dv.website&&<a href={dv.website} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"#4A6FA5",display:"block",marginBottom:4,textDecoration:"none"}}>ð {dv.website}</a>}
-      {dv.sources&&<p style={{fontSize:11,color:"#4A6FA5",margin:"0 0 10px",fontWeight:500}}>ð {dv.sources}</p>}
-      <button onClick={()=>!isSaved&&!alreadyIn&&saveDiscovered(dv)} disabled={isSaved||alreadyIn}
-        style={{...btnP,width:"100%",textAlign:"center",fontSize:12,padding:"8px 0",background:isSaved||alreadyIn?"#D0D0C8":"#0A0A0A",cursor:isSaved||alreadyIn?"default":"pointer"}}>
-        {alreadyIn?"Already in Tracker":isSaved?"â Saved":"ï¼ Save to Tracker"}
-      </button>
-    </div>
-  );
-};
-
-// âââ DISCOVER PANEL â top-level to prevent re-render glitch âââ
-const DiscoverPanel = React.memo(({venues,discoverCity,setDiscoverCity,discoverType,setDiscoverType,
-  searchMode,setSearchMode,batchCities,setBatchCities,isSearching,batchProgress,
-  discoveredVenues,savedIds,searchError,apiKey,discoverVenues,saveDiscovered,setShowDiscover}) => {
-
-  const [citySearch,setCitySearch] = useState("");
-  const [batchSelected,setBatchSelected] = useState(()=>new Set(batchCities.split(/[,\n]/).map(c=>c.trim()).filter(Boolean)));
-
-  const allCities = useMemo(()=>{
-    const rc = Object.values(REGIONS).flat();
-    const vc = venues.map(v=>v.city).filter(Boolean);
-    return [...new Set([...rc,...vc])].sort();
-  },[venues]);
-
-  const filteredCities = useMemo(()=>citySearch
-    ? allCities.filter(c=>c.toLowerCase().includes(citySearch.toLowerCase()))
-    : allCities
-  ,[allCities,citySearch]);
-
-  const toggleCity = useCallback((city)=>{
-    setBatchSelected(prev=>{
-      const next = new Set(prev);
-      if(next.has(city)) next.delete(city); else if(next.size<15) next.add(city);
-      return next;
-    });
-  },[]);
-
-  useEffect(()=>{ setBatchCities([...batchSelected].join("\n")); },[batchSelected]);
-
-  const cities = useMemo(()=>[...new Set(discoveredVenues.map(v=>v.city||"Unknown"))],[discoveredVenues]);
-  const isMulti = cities.length > 1;
-
-  return (
-    <div style={{position:"fixed",top:0,left:0,width:560,height:"100vh",background:"#FFFFFF",borderRight:"1px solid #E0E0D8",zIndex:100,display:"flex",flexDirection:"column",boxShadow:"8px 0 40px rgba(0,0,0,0.1)",animation:"slideInLeft 0.25s ease"}}>
-      {/* Header */}
-      <div style={{padding:"24px 28px",borderBottom:"1px solid #E0E0D8",flexShrink:0}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
-          <div>
-            <h2 style={{margin:0,fontSize:20,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>Discover Venues</h2>
-            <p style={{margin:"4px 0 0",fontSize:13,color:"#6B6B65"}}>Find venues in any city to add to your tracker</p>
-          </div>
-          <button onClick={()=>setShowDiscover(false)} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#A0A09A",padding:4}}>â</button>
-        </div>
-        {/* Mode toggle */}
-        <div style={{display:"flex",border:"1.5px solid #D8D8D0",borderRadius:8,overflow:"hidden",marginBottom:14}}>
-          {["single","batch"].map(m=>(
-            <button key={m} onClick={()=>setSearchMode(m)} style={{flex:1,padding:"7px 0",border:"none",background:searchMode===m?"#0A0A0A":"#FFFFFF",color:searchMode===m?"#EBF245":"#6B6B65",fontSize:12,cursor:"pointer",fontWeight:700}}>
-              {m==="single"?"Single City":"Batch Search"}
-            </button>
-          ))}
-        </div>
-        {/* Single city */}
-        {searchMode==="single"&&(
-          <div style={{display:"grid",gap:10}}>
-            <div>
-              <label style={{...lbl,display:"block",marginBottom:4}}>City</label>
-              <input value={discoverCity} onChange={e=>setDiscoverCity(e.target.value)}
-                onKeyDown={e=>e.key==="Enter"&&discoverVenues()}
-                placeholder="e.g. Houston, Nashville..." style={{...inp,padding:"10px 14px"}}/>
-            </div>
-            <div>
-              <label style={{...lbl,display:"block",marginBottom:4}}>Venue Type</label>
-              <select value={discoverType} onChange={e=>setDiscoverType(e.target.value)} style={{...sel,width:"100%",padding:"10px 14px"}}>
-                {DISCOVER_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </div>
-            <button onClick={discoverVenues} disabled={isSearching||!discoverCity.trim()}
-              style={{...btnP,padding:"11px 0",opacity:isSearching||!discoverCity.trim()?0.5:1}}>
-              {isSearching?"Searching...":"Search Venues"}
-            </button>
-          </div>
-        )}
-        {/* Batch */}
-        {searchMode==="batch"&&(
-          <div style={{display:"grid",gap:10}}>
-            <div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                <label style={lbl}>Select Cities <span style={{color:"#0A0A0A",fontWeight:700}}>({batchSelected.size}/15)</span></label>
-                {batchSelected.size>0&&<button onClick={()=>setBatchSelected(new Set())} style={{background:"none",border:"none",fontSize:11,color:"#6B6B65",cursor:"pointer",fontWeight:600,padding:0}}>Clear all</button>}
-              </div>
-              {batchSelected.size>0&&(
-                <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
-                  {[...batchSelected].map(city=>(
-                    <span key={city} onClick={()=>toggleCity(city)}
-                      style={{display:"inline-flex",alignItems:"center",gap:4,background:"#0A0A0A",color:"#EBF245",padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer"}}>
-                      {city} <span style={{fontSize:14,lineHeight:1}}>Ã</span>
-                    </span>
-                  ))}
-                </div>
-              )}
-              <input value={citySearch} onChange={e=>setCitySearch(e.target.value)}
-                placeholder="Search cities..." style={{...inp,padding:"8px 12px",borderRadius:batchSelected.size<15?"8px 8px 0 0":8}}/>
-              {batchSelected.size<15&&(
-                <div style={{maxHeight:160,overflowY:"auto",border:"1.5px solid #D8D8D0",borderTop:"none",borderRadius:"0 0 8px 8px",background:"#FFFFFF"}}>
-                  {filteredCities.filter(c=>!batchSelected.has(c)).length===0
-                    ? <p style={{padding:"10px 12px",fontSize:13,color:"#A0A09A",margin:0}}>No cities found</p>
-                    : filteredCities.filter(c=>!batchSelected.has(c)).map(city=>(
-                      <div key={city} onClick={()=>toggleCity(city)}
-                        style={{padding:"8px 14px",fontSize:13,color:"#0A0A0A",cursor:"pointer",borderBottom:"1px solid #F4F4F0"}}
-                        onMouseEnter={e=>e.currentTarget.style.background="#EBF245"}
-                        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                        {city}
-                        {venues.some(v=>v.city===city)&&<span style={{fontSize:11,color:"#6B6B65",marginLeft:6}}>({venues.filter(v=>v.city===city).length} saved)</span>}
-                      </div>
-                    ))
-                  }
-                </div>
-              )}
-            </div>
-            <div>
-              <label style={{...lbl,display:"block",marginBottom:4}}>Venue Type</label>
-              <select value={discoverType} onChange={e=>setDiscoverType(e.target.value)} style={{...sel,width:"100%",padding:"10px 14px"}}>
-                {DISCOVER_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </div>
-            {isSearching&&batchProgress.total>1&&(
-              <div>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                  <span style={{fontSize:12,color:"#3A3A35",fontWeight:600}}>Searching {batchProgress.currentCity}...</span>
-                  <span style={{fontSize:12,color:"#6B6B65"}}>{batchProgress.current}/{batchProgress.total}</span>
-                </div>
-                <div style={{height:6,background:"#E0E0D8",borderRadius:3,overflow:"hidden"}}>
-                  <div style={{height:"100%",background:"#0A0A0A",borderRadius:3,width:`${(batchProgress.current/batchProgress.total)*100}%`,transition:"width 0.5s"}}/>
-                </div>
-              </div>
-            )}
-            <button onClick={discoverVenues} disabled={isSearching||batchSelected.size===0}
-              style={{...btnP,padding:"11px 0",opacity:isSearching||batchSelected.size===0?0.5:1}}>
-              {isSearching?`Searching ${batchProgress.current+1}/${batchProgress.total}...`:`Search ${batchSelected.size} ${batchSelected.size===1?"City":"Cities"}`}
-            </button>
-          </div>
-        )}
-        {!apiKey&&<p style={{margin:"10px 0 0",fontSize:12,color:"#C0392B",fontWeight:600}}>â  Set up your API key in Settings to enable search.</p>}
-      </div>
-      {/* Results */}
-      <div style={{flex:1,overflowY:"auto",padding:"16px 28px"}}>
-        {isSearching&&discoveredVenues.length===0&&(
-          <div style={{padding:"32px 0",textAlign:"center"}}><Spinner/><p style={{color:"#6B6B65",fontSize:14,marginTop:12}}>Searching{batchProgress.currentCity?` ${batchProgress.currentCity}`:""}...</p></div>
-        )}
-        {searchError&&<div style={{background:"#FFF5F5",border:"1px solid #E8C4C4",borderRadius:10,padding:16,color:"#8B4444",fontSize:13,marginBottom:12}}>{searchError}</div>}
-        {discoveredVenues.length>0&&(
-          <div>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-              <p style={{margin:0,fontSize:13,color:"#0A0A0A",fontWeight:700}}>{discoveredVenues.length} venues found{isSearching?" (searching...)":""}</p>
-              {savedIds.size>0&&<p style={{margin:0,fontSize:12,color:"#1A5C3A",fontWeight:700}}>{savedIds.size} saved â</p>}
-            </div>
-            {isMulti?cities.map(city=>{
-              const cvs = discoveredVenues.filter(v=>v.city===city);
-              return (
-                <div key={city} style={{marginBottom:24}}>
-                  <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                    <h3 style={{margin:0,fontSize:15,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>{city}</h3>
-                    <span style={{fontSize:11,color:"#6B6B65",background:"#F4F4F0",padding:"2px 8px",borderRadius:6,fontWeight:600}}>{cvs.length}</span>
-                    <div style={{flex:1,height:1,background:"#E0E0D8"}}/>
-                  </div>
-                  {cvs.map(dv=><DiscCard key={dv._id} dv={dv} savedIds={savedIds} venues={venues} saveDiscovered={saveDiscovered}/>)}
-                </div>
-              );
-            }):<>{discoveredVenues.map(dv=><DiscCard key={dv._id} dv={dv} savedIds={savedIds} venues={venues} saveDiscovered={saveDiscovered}/>)}</>}
-          </div>
-        )}
-        {!isSearching&&!searchError&&discoveredVenues.length===0&&(
-          <div style={{textAlign:"center",padding:"48px 0",color:"#A0A09A"}}>
-            <p style={{fontSize:44,margin:"0 0 10px"}}>ð·</p>
-            <p style={{fontSize:16,fontFamily:"'Playfair Display',serif",color:"#3A3A35"}}>Search any city to discover venues</p>
-            <p style={{fontSize:12,maxWidth:340,margin:"6px auto 0",lineHeight:1.6}}>Use Batch Search to pick multiple cities at once.</p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
+const emptyVenue = () => ({
+  id: Date.now(),
+  name: "",
+  city: "",
+  region: "",
+  eventSizes: [],
+  pricePerHead: 0,
+  privateRoom: false,
+  av: false,
+  dietary: false,
+  exclusivity: 0,
+  status: "Prospect",
+  visited: false,
+  website: "",
+  notes: "",
+  contact: "",
+  phone: "",
+  lastUsed: "",
+  rating: 0
 });
 
-// âââ MAIN APP âââ
+// Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ STYLES Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+const sel = {
+  padding: "8px 12px",
+  borderRadius: 8,
+  border: "1.5px solid #D8D8D0",
+  background: "#FFFFFF",
+  fontSize: 13,
+  fontFamily: "'DM Sans',sans-serif",
+  color: "#0A0A0A",
+  outline: "none",
+  cursor: "pointer",
+  minWidth: 130,
+  boxSizing: "border-box"
+};
+const inp = {
+  ...sel,
+  cursor: "text",
+  width: "100%"
+};
+const btnP = {
+  padding: "10px 24px",
+  borderRadius: 8,
+  border: "none",
+  background: "#0A0A0A",
+  color: "#EBF245",
+  fontSize: 13,
+  fontFamily: "'DM Sans',sans-serif",
+  fontWeight: 700,
+  cursor: "pointer",
+  letterSpacing: "0.02em"
+};
+const btnS = {
+  ...btnP,
+  background: "transparent",
+  color: "#0A0A0A",
+  border: "1.5px solid #0A0A0A"
+};
+const lbl = {
+  fontSize: 11,
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  color: "#6B6B65",
+  fontFamily: "'DM Sans',sans-serif",
+  fontWeight: 600
+};
+
+// Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ SHARED COMPONENTS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+const Stars = ({
+  rating,
+  onRate,
+  size = 16,
+  interactive = false
+}) => /*#__PURE__*/React.createElement("div", {
+  style: {
+    display: "flex",
+    gap: 2
+  }
+}, [1, 2, 3, 4, 5].map(s => /*#__PURE__*/React.createElement("span", {
+  key: s,
+  onClick: () => interactive && onRate && onRate(s),
+  style: {
+    cursor: interactive ? "pointer" : "default",
+    fontSize: size,
+    color: s <= rating ? "#0A0A0A" : "#D0D0C8",
+    userSelect: "none"
+  }
+}, "\xC3\xA2\xC2\x98\xC2\x85")));
+const Tag = ({
+  children,
+  color = "#0A0A0A",
+  filled = false
+}) => /*#__PURE__*/React.createElement("span", {
+  style: {
+    display: "inline-block",
+    padding: "2px 10px",
+    borderRadius: 6,
+    fontSize: 11,
+    fontWeight: 600,
+    letterSpacing: "0.02em",
+    background: filled ? color : "transparent",
+    color: filled ? color === "#0A0A0A" ? "#EBF245" : "#fff" : color,
+    border: `1.5px solid ${color}`,
+    lineHeight: "20px",
+    whiteSpace: "nowrap"
+  }
+}, children);
+const Toggle = ({
+  checked,
+  onChange,
+  label
+}) => /*#__PURE__*/React.createElement("label", {
+  style: {
+    display: "flex",
+    alignItems: "center",
+    gap: 8,
+    cursor: "pointer",
+    fontSize: 13,
+    color: "#3A3A35"
+  }
+}, /*#__PURE__*/React.createElement("div", {
+  onClick: () => onChange(!checked),
+  style: {
+    width: 36,
+    height: 20,
+    borderRadius: 10,
+    background: checked ? "#0A0A0A" : "#D0D0C8",
+    position: "relative",
+    cursor: "pointer",
+    transition: "background 0.2s"
+  }
+}, /*#__PURE__*/React.createElement("div", {
+  style: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    background: checked ? "#EBF245" : "#fff",
+    position: "absolute",
+    top: 2,
+    left: checked ? 18 : 2,
+    transition: "left 0.2s",
+    boxShadow: "0 1px 3px rgba(0,0,0,0.15)"
+  }
+})), label);
+const Spinner = ({
+  size = 32
+}) => /*#__PURE__*/React.createElement("div", {
+  style: {
+    width: size,
+    height: size,
+    border: "3px solid #E0E0D8",
+    borderTopColor: "#0A0A0A",
+    borderRadius: "50%",
+    animation: "spin 0.8s linear infinite",
+    margin: "0 auto"
+  }
+});
+
+// Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ VENUE PHOTO Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+const DiscCard = ({
+  dv,
+  savedIds,
+  venues,
+  saveDiscovered
+}) => {
+  const isSaved = savedIds.has(dv._id);
+  const alreadyIn = venues.some(v => v.name.toLowerCase() === dv.name.toLowerCase());
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#fff",
+      borderRadius: 10,
+      padding: 16,
+      border: "1.5px solid #E0E0D8",
+      marginBottom: 10,
+      animation: "fadeIn 0.3s ease"
+    },
+    onMouseEnter: e => e.currentTarget.style.borderColor = "#0A0A0A",
+    onMouseLeave: e => e.currentTarget.style.borderColor = "#E0E0D8"
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      margin: 0,
+      fontSize: 15,
+      fontFamily: "'Playfair Display',serif",
+      color: "#0A0A0A",
+      fontWeight: 600
+    }
+  }, dv.name), /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: "2px 0 0",
+      fontSize: 12,
+      color: "#6B6B65"
+    }
+  }, [dv.neighborhood, dv.cuisine].filter(Boolean).join(" ÃÂ· "))), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 13,
+      fontWeight: 700,
+      color: "#0A0A0A",
+      whiteSpace: "nowrap",
+      marginLeft: 8
+    }
+  }, dv.priceRange)), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      color: "#5A5348",
+      lineHeight: 1.5,
+      margin: "8px 0 10px"
+    }
+  }, dv.description), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 5,
+      flexWrap: "wrap",
+      marginBottom: 8
+    }
+  }, dv.privateRoom && /*#__PURE__*/React.createElement(Tag, {
+    color: "#2A7A5A"
+  }, "Private Dining"), dv.capacity && /*#__PURE__*/React.createElement(Tag, {
+    color: "#4A6FA5"
+  }, dv.capacity), dv.estimatedPricePerHead > 0 && /*#__PURE__*/React.createElement(Tag, {
+    color: "#0A0A0A"
+  }, "~$", dv.estimatedPricePerHead, "/head")), dv.knownFor && /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11,
+      color: "#A0A09A",
+      fontStyle: "italic",
+      margin: "0 0 4px"
+    }
+  }, "Known for: ", dv.knownFor), dv.website && /*#__PURE__*/React.createElement("a", {
+    href: dv.website,
+    target: "_blank",
+    rel: "noopener noreferrer",
+    style: {
+      fontSize: 11,
+      color: "#4A6FA5",
+      display: "block",
+      marginBottom: 4,
+      textDecoration: "none"
+    }
+  }, "\xC3\xB0\xC2\x9F\xC2\x94\xC2\x97 ", dv.website), dv.sources && /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 11,
+      color: "#4A6FA5",
+      margin: "0 0 10px",
+      fontWeight: 500
+    }
+  }, "\xC3\xB0\xC2\x9F\xC2\x93\xC2\x8D ", dv.sources), /*#__PURE__*/React.createElement("button", {
+    onClick: () => !isSaved && !alreadyIn && saveDiscovered(dv),
+    disabled: isSaved || alreadyIn,
+    style: {
+      ...btnP,
+      width: "100%",
+      textAlign: "center",
+      fontSize: 12,
+      padding: "8px 0",
+      background: isSaved || alreadyIn ? "#D0D0C8" : "#0A0A0A",
+      cursor: isSaved || alreadyIn ? "default" : "pointer"
+    }
+  }, alreadyIn ? "Already in Tracker" : isSaved ? "Ã¢ÂÂ Saved" : "Ã¯Â¼Â Save to Tracker"));
+};
+
+// Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ DISCOVER PANEL Ã¢ÂÂ top-level to prevent re-render glitch Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ
+const DiscoverPanel = React.memo(({
+  venues,
+  discoverCity,
+  setDiscoverCity,
+  discoverType,
+  setDiscoverType,
+  searchMode,
+  setSearchMode,
+  batchCities,
+  setBatchCities,
+  isSearching,
+  batchProgress,
+  discoveredVenues,
+  savedIds,
+  searchError,
+  apiKey,
+  discoverVenues,
+  saveDiscovered,
+  setShowDiscover
+}) => {
+  const [citySearch, setCitySearch] = useState("");
+  const [batchSelected, setBatchSelected] = useState(() => new Set(batchCities.split(/[,\n]/).map(c => c.trim()).filter(Boolean)));
+  const allCities = useMemo(() => {
+    const rc = Object.values(REGIONS).flat();
+    const vc = venues.map(v => v.city).filter(Boolean);
+    return [...new Set([...rc, ...vc])].sort();
+  }, [venues]);
+  const filteredCities = useMemo(() => citySearch ? allCities.filter(c => c.toLowerCase().includes(citySearch.toLowerCase())) : allCities, [allCities, citySearch]);
+  const toggleCity = useCallback(city => {
+    setBatchSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(city)) next.delete(city);else if (next.size < 15) next.add(city);
+      return next;
+    });
+  }, []);
+  useEffect(() => {
+    setBatchCities([...batchSelected].join("\n"));
+  }, [batchSelected]);
+  const cities = useMemo(() => [...new Set(discoveredVenues.map(v => v.city || "Unknown"))], [discoveredVenues]);
+  const isMulti = cities.length > 1;
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      top: 0,
+      left: 0,
+      width: 560,
+      height: "100vh",
+      background: "#FFFFFF",
+      borderRight: "1px solid #E0E0D8",
+      zIndex: 100,
+      display: "flex",
+      flexDirection: "column",
+      boxShadow: "8px 0 40px rgba(0,0,0,0.1)",
+      animation: "slideInLeft 0.25s ease"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "24px 28px",
+      borderBottom: "1px solid #E0E0D8",
+      flexShrink: 0
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 14
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      margin: 0,
+      fontSize: 20,
+      fontFamily: "'Playfair Display',serif",
+      color: "#0A0A0A"
+    }
+  }, "Discover Venues"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: "4px 0 0",
+      fontSize: 13,
+      color: "#6B6B65"
+    }
+  }, "Find venues in any city to add to your tracker")), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowDiscover(false),
+    style: {
+      background: "none",
+      border: "none",
+      fontSize: 22,
+      cursor: "pointer",
+      color: "#A0A09A",
+      padding: 4
+    }
+  }, "\xC3\xA2\xC2\x9C\xC2\x95")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      border: "1.5px solid #D8D8D0",
+      borderRadius: 8,
+      overflow: "hidden",
+      marginBottom: 14
+    }
+  }, ["single", "batch"].map(m => /*#__PURE__*/React.createElement("button", {
+    key: m,
+    onClick: () => setSearchMode(m),
+    style: {
+      flex: 1,
+      padding: "7px 0",
+      border: "none",
+      background: searchMode === m ? "#0A0A0A" : "#FFFFFF",
+      color: searchMode === m ? "#EBF245" : "#6B6B65",
+      fontSize: 12,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, m === "single" ? "Single City" : "Batch Search"))), searchMode === "single" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      ...lbl,
+      display: "block",
+      marginBottom: 4
+    }
+  }, "City"), /*#__PURE__*/React.createElement("input", {
+    value: discoverCity,
+    onChange: e => setDiscoverCity(e.target.value),
+    onKeyDown: e => e.key === "Enter" && discoverVenues(),
+    placeholder: "e.g. Houston, Nashville...",
+    style: {
+      ...inp,
+      padding: "10px 14px"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      ...lbl,
+      display: "block",
+      marginBottom: 4
+    }
+  }, "Venue Type"), /*#__PURE__*/React.createElement("select", {
+    value: discoverType,
+    onChange: e => setDiscoverType(e.target.value),
+    style: {
+      ...sel,
+      width: "100%",
+      padding: "10px 14px"
+    }
+  }, DISCOVER_TYPES.map(t => /*#__PURE__*/React.createElement("option", {
+    key: t.value,
+    value: t.value
+  }, t.label)))), /*#__PURE__*/React.createElement("button", {
+    onClick: discoverVenues,
+    disabled: isSearching || !discoverCity.trim(),
+    style: {
+      ...btnP,
+      padding: "11px 0",
+      opacity: isSearching || !discoverCity.trim() ? 0.5 : 1
+    }
+  }, isSearching ? "Searching..." : "Search Venues")), searchMode === "batch" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 6
+    }
+  }, /*#__PURE__*/React.createElement("label", {
+    style: lbl
+  }, "Select Cities ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#0A0A0A",
+      fontWeight: 700
+    }
+  }, "(", batchSelected.size, "/15)")), batchSelected.size > 0 && /*#__PURE__*/React.createElement("button", {
+    onClick: () => setBatchSelected(new Set()),
+    style: {
+      background: "none",
+      border: "none",
+      fontSize: 11,
+      color: "#6B6B65",
+      cursor: "pointer",
+      fontWeight: 600,
+      padding: 0
+    }
+  }, "Clear all")), batchSelected.size > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      flexWrap: "wrap",
+      gap: 5,
+      marginBottom: 8
+    }
+  }, [...batchSelected].map(city => /*#__PURE__*/React.createElement("span", {
+    key: city,
+    onClick: () => toggleCity(city),
+    style: {
+      display: "inline-flex",
+      alignItems: "center",
+      gap: 4,
+      background: "#0A0A0A",
+      color: "#EBF245",
+      padding: "3px 10px",
+      borderRadius: 6,
+      fontSize: 12,
+      fontWeight: 600,
+      cursor: "pointer"
+    }
+  }, city, " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 14,
+      lineHeight: 1
+    }
+  }, "\xC3\x83\xC2\x97")))), /*#__PURE__*/React.createElement("input", {
+    value: citySearch,
+    onChange: e => setCitySearch(e.target.value),
+    placeholder: "Search cities...",
+    style: {
+      ...inp,
+      padding: "8px 12px",
+      borderRadius: batchSelected.size < 15 ? "8px 8px 0 0" : 8
+    }
+  }), batchSelected.size < 15 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      maxHeight: 160,
+      overflowY: "auto",
+      border: "1.5px solid #D8D8D0",
+      borderTop: "none",
+      borderRadius: "0 0 8px 8px",
+      background: "#FFFFFF"
+    }
+  }, filteredCities.filter(c => !batchSelected.has(c)).length === 0 ? /*#__PURE__*/React.createElement("p", {
+    style: {
+      padding: "10px 12px",
+      fontSize: 13,
+      color: "#A0A09A",
+      margin: 0
+    }
+  }, "No cities found") : filteredCities.filter(c => !batchSelected.has(c)).map(city => /*#__PURE__*/React.createElement("div", {
+    key: city,
+    onClick: () => toggleCity(city),
+    style: {
+      padding: "8px 14px",
+      fontSize: 13,
+      color: "#0A0A0A",
+      cursor: "pointer",
+      borderBottom: "1px solid #F4F4F0"
+    },
+    onMouseEnter: e => e.currentTarget.style.background = "#EBF245",
+    onMouseLeave: e => e.currentTarget.style.background = "transparent"
+  }, city, venues.some(v => v.city === city) && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#6B6B65",
+      marginLeft: 6
+    }
+  }, "(", venues.filter(v => v.city === city).length, " saved)"))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+    style: {
+      ...lbl,
+      display: "block",
+      marginBottom: 4
+    }
+  }, "Venue Type"), /*#__PURE__*/React.createElement("select", {
+    value: discoverType,
+    onChange: e => setDiscoverType(e.target.value),
+    style: {
+      ...sel,
+      width: "100%",
+      padding: "10px 14px"
+    }
+  }, DISCOVER_TYPES.map(t => /*#__PURE__*/React.createElement("option", {
+    key: t.value,
+    value: t.value
+  }, t.label)))), isSearching && batchProgress.total > 1 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      marginBottom: 4
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "#3A3A35",
+      fontWeight: 600
+    }
+  }, "Searching ", batchProgress.currentCity, "..."), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      color: "#6B6B65"
+    }
+  }, batchProgress.current, "/", batchProgress.total)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: 6,
+      background: "#E0E0D8",
+      borderRadius: 3,
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      height: "100%",
+      background: "#0A0A0A",
+      borderRadius: 3,
+      width: `${batchProgress.current / batchProgress.total * 100}%`,
+      transition: "width 0.5s"
+    }
+  }))), /*#__PURE__*/React.createElement("button", {
+    onClick: discoverVenues,
+    disabled: isSearching || batchSelected.size === 0,
+    style: {
+      ...btnP,
+      padding: "11px 0",
+      opacity: isSearching || batchSelected.size === 0 ? 0.5 : 1
+    }
+  }, isSearching ? `Searching ${batchProgress.current + 1}/${batchProgress.total}...` : `Search ${batchSelected.size} ${batchSelected.size === 1 ? "City" : "Cities"}`)), !apiKey && /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: "10px 0 0",
+      fontSize: 12,
+      color: "#C0392B",
+      fontWeight: 600
+    }
+  }, "\xC3\xA2\xC2\x9A\xC2\xA0 Set up your API key in Settings to enable search.")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      overflowY: "auto",
+      padding: "16px 28px"
+    }
+  }, isSearching && discoveredVenues.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "32px 0",
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement(Spinner, null), /*#__PURE__*/React.createElement("p", {
+    style: {
+      color: "#6B6B65",
+      fontSize: 14,
+      marginTop: 12
+    }
+  }, "Searching", batchProgress.currentCity ? ` ${batchProgress.currentCity}` : "", "...")), searchError && /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#FFF5F5",
+      border: "1px solid #E8C4C4",
+      borderRadius: 10,
+      padding: 16,
+      color: "#8B4444",
+      fontSize: 13,
+      marginBottom: 12
+    }
+  }, searchError), discoveredVenues.length > 0 && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: 12
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: 0,
+      fontSize: 13,
+      color: "#0A0A0A",
+      fontWeight: 700
+    }
+  }, discoveredVenues.length, " venues found", isSearching ? " (searching...)" : ""), savedIds.size > 0 && /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: 0,
+      fontSize: 12,
+      color: "#1A5C3A",
+      fontWeight: 700
+    }
+  }, savedIds.size, " saved \xC3\xA2\xC2\x9C\xC2\x93")), isMulti ? cities.map(city => {
+    const cvs = discoveredVenues.filter(v => v.city === city);
+    return /*#__PURE__*/React.createElement("div", {
+      key: city,
+      style: {
+        marginBottom: 24
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        marginBottom: 10
+      }
+    }, /*#__PURE__*/React.createElement("h3", {
+      style: {
+        margin: 0,
+        fontSize: 15,
+        fontFamily: "'Playfair Display',serif",
+        color: "#0A0A0A"
+      }
+    }, city), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 11,
+        color: "#6B6B65",
+        background: "#F4F4F0",
+        padding: "2px 8px",
+        borderRadius: 6,
+        fontWeight: 600
+      }
+    }, cvs.length), /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1,
+        height: 1,
+        background: "#E0E0D8"
+      }
+    })), cvs.map(dv => /*#__PURE__*/React.createElement(DiscCard, {
+      key: dv._id,
+      dv: dv,
+      savedIds: savedIds,
+      venues: venues,
+      saveDiscovered: saveDiscovered
+    })));
+  }) : /*#__PURE__*/React.createElement(React.Fragment, null, discoveredVenues.map(dv => /*#__PURE__*/React.createElement(DiscCard, {
+    key: dv._id,
+    dv: dv,
+    savedIds: savedIds,
+    venues: venues,
+    saveDiscovered: saveDiscovered
+  })))), !isSearching && !searchError && discoveredVenues.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "48px 0",
+      color: "#A0A09A"
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 44,
+      margin: "0 0 10px"
+    }
+  }, "\xC3\xB0\xC2\x9F\xC2\x8D\xC2\xB7"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 16,
+      fontFamily: "'Playfair Display',serif",
+      color: "#3A3A35"
+    }
+  }, "Search any city to discover venues"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 12,
+      maxWidth: 340,
+      margin: "6px auto 0",
+      lineHeight: 1.6
+    }
+  }, "Use Batch Search to pick multiple cities at once."))));
+});
+
+// Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ MAIN APP Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 function VenueTracker() {
-  const [venues,setVenues] = useState(loadVenues);
-  const [search,setSearch] = useState("");
-  const [filterRegion,setFilterRegion] = useState("All");
-  const [filterSize,setFilterSize] = useState("All");
-  const [filterStatus,setFilterStatus] = useState("All");
-  const [filterVisited,setFilterVisited] = useState("All");
-  const [filterPrivate,setFilterPrivate] = useState(false);
-  const [filterAV,setFilterAV] = useState(false);
-  const [filterDietary,setFilterDietary] = useState(false);
-  const [filterExclusivity,setFilterExclusivity] = useState(0);
-  const [budgetMax,setBudgetMax] = useState(300);
-  const [sortBy,setSortBy] = useState("name");
-  const [view,setView] = useState("grid");
-  const [selectedVenue,setSelectedVenue] = useState(null);
-  const [isEditing,setIsEditing] = useState(false);
-  const [showAddForm,setShowAddForm] = useState(false);
-  const [showDiscover,setShowDiscover] = useState(false);
-  const [showSettings,setShowSettings] = useState(false);
-  const [compareIds,setCompareIds] = useState(new Set());
-  const [mode,setMode] = useState("tracker");
+  const [venues, setVenues] = useState(loadVenues);
+  const [search, setSearch] = useState("");
+  const [filterRegion, setFilterRegion] = useState("All");
+  const [filterSize, setFilterSize] = useState("All");
+  const [filterStatus, setFilterStatus] = useState("All");
+  const [filterVisited, setFilterVisited] = useState("All");
+  const [filterPrivate, setFilterPrivate] = useState(false);
+  const [filterAV, setFilterAV] = useState(false);
+  const [filterDietary, setFilterDietary] = useState(false);
+  const [filterExclusivity, setFilterExclusivity] = useState(0);
+  const [budgetMax, setBudgetMax] = useState(300);
+  const [sortBy, setSortBy] = useState("name");
+  const [view, setView] = useState("grid");
+  const [selectedVenue, setSelectedVenue] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showAddForm, setShowAddForm] = useState(false);
+  const [showDiscover, setShowDiscover] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [compareIds, setCompareIds] = useState(new Set());
+  const [mode, setMode] = useState("tracker");
 
   // Discover
-  const [discoverCity,setDiscoverCity] = useState("");
-  const [discoverType,setDiscoverType] = useState(DISCOVER_TYPES[0].value);
-  const [discoveredVenues,setDiscoveredVenues] = useState([]);
-  const [isSearching,setIsSearching] = useState(false);
-  const [searchError,setSearchError] = useState("");
-  const [savedIds,setSavedIds] = useState(new Set());
-  const [searchMode,setSearchMode] = useState("single");
-  const [batchCities,setBatchCities] = useState("");
-  const [batchProgress,setBatchProgress] = useState({current:0,total:0,currentCity:""});
+  const [discoverCity, setDiscoverCity] = useState("");
+  const [discoverType, setDiscoverType] = useState(DISCOVER_TYPES[0].value);
+  const [discoveredVenues, setDiscoveredVenues] = useState([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchError, setSearchError] = useState("");
+  const [savedIds, setSavedIds] = useState(new Set());
+  const [searchMode, setSearchMode] = useState("single");
+  const [batchCities, setBatchCities] = useState("");
+  const [batchProgress, setBatchProgress] = useState({
+    current: 0,
+    total: 0,
+    currentCity: ""
+  });
 
   // AI
-  const [aiModal,setAiModal] = useState(null);
-  const [aiLoading,setAiLoading] = useState(false);
-  const [aiResult,setAiResult] = useState("");
-  const [emailForm,setEmailForm] = useState({date:"",guestCount:20,eventType:"Executive dinner",notes:""});
-  const [briefForm,setBriefForm] = useState({accountName:"",city:"",guestCount:30,budget:5000,eventType:"Client appreciation dinner",goals:""});
-  const [matchForm,setMatchForm] = useState({description:""});
-  const [menuForm,setMenuForm] = useState({guestCount:20,dietaryNeeds:"",preferences:""});
-  const [aiVenueCtx,setAiVenueCtx] = useState(null);
-  const [apiKey,setApiKey] = useState(()=>{try{return localStorage.getItem(API_KEY_STORAGE)||""}catch(e){return ""}});
-
-  useEffect(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(venues))}catch(e){}},[venues]);
-
-  const saveVenue = useCallback((v)=>{setVenues(p=>p.map(x=>x.id===v.id?v:x));setSelectedVenue(v);setIsEditing(false);},[]);
-  const addVenue = useCallback((v)=>{setVenues(p=>[...p,v]);setShowAddForm(false);setSelectedVenue(v);},[]);
-  const deleteVenue = useCallback((id)=>{setVenues(p=>p.filter(v=>v.id!==id));setSelectedVenue(null);},[]);
-  const duplicateVenue = useCallback((v)=>{const d={...v,id:Date.now(),name:`${v.name} (Copy)`,status:"Prospect",visited:false,lastUsed:"",rating:0};setVenues(p=>[...p,d]);setSelectedVenue(d);},[]);
-  const toggleCompare = useCallback((id)=>{setCompareIds(p=>{const n=new Set(p);n.has(id)?n.delete(id):n.size<5&&n.add(id);return n;});},[]);
-
-  const filtered = useMemo(()=>{
-    let r = venues.filter(v=>{
-      if(search&&!v.name.toLowerCase().includes(search.toLowerCase())&&!v.city.toLowerCase().includes(search.toLowerCase())) return false;
-      if(filterRegion!=="All"&&v.region!==filterRegion) return false;
-      if(filterSize!=="All"&&!v.eventSizes.includes(filterSize)) return false;
-      if(filterStatus!=="All"&&v.status!==filterStatus) return false;
-      if(filterVisited==="Yes"&&!v.visited) return false;
-      if(filterVisited==="No"&&v.visited) return false;
-      if(filterPrivate&&!v.privateRoom) return false;
-      if(filterAV&&!v.av) return false;
-      if(filterDietary&&!v.dietary) return false;
-      if(filterExclusivity>0&&v.exclusivity<filterExclusivity) return false;
-      if(v.pricePerHead>budgetMax&&v.pricePerHead>0) return false;
+  const [aiModal, setAiModal] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiResult, setAiResult] = useState("");
+  const [emailForm, setEmailForm] = useState({
+    date: "",
+    guestCount: 20,
+    eventType: "Executive dinner",
+    notes: ""
+  });
+  const [briefForm, setBriefForm] = useState({
+    accountName: "",
+    city: "",
+    guestCount: 30,
+    budget: 5000,
+    eventType: "Client appreciation dinner",
+    goals: ""
+  });
+  const [matchForm, setMatchForm] = useState({
+    description: ""
+  });
+  const [menuForm, setMenuForm] = useState({
+    guestCount: 20,
+    dietaryNeeds: "",
+    preferences: ""
+  });
+  const [aiVenueCtx, setAiVenueCtx] = useState(null);
+  const [apiKey, setApiKey] = useState(() => {
+    try {
+      return localStorage.getItem(API_KEY_STORAGE) || "";
+    } catch (e) {
+      return "";
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(venues));
+    } catch (e) {}
+  }, [venues]);
+  const saveVenue = useCallback(v => {
+    setVenues(p => p.map(x => x.id === v.id ? v : x));
+    setSelectedVenue(v);
+    setIsEditing(false);
+  }, []);
+  const addVenue = useCallback(v => {
+    setVenues(p => [...p, v]);
+    setShowAddForm(false);
+    setSelectedVenue(v);
+  }, []);
+  const deleteVenue = useCallback(id => {
+    setVenues(p => p.filter(v => v.id !== id));
+    setSelectedVenue(null);
+  }, []);
+  const duplicateVenue = useCallback(v => {
+    const d = {
+      ...v,
+      id: Date.now(),
+      name: `${v.name} (Copy)`,
+      status: "Prospect",
+      visited: false,
+      lastUsed: "",
+      rating: 0
+    };
+    setVenues(p => [...p, d]);
+    setSelectedVenue(d);
+  }, []);
+  const toggleCompare = useCallback(id => {
+    setCompareIds(p => {
+      const n = new Set(p);
+      n.has(id) ? n.delete(id) : n.size < 5 && n.add(id);
+      return n;
+    });
+  }, []);
+  const filtered = useMemo(() => {
+    let r = venues.filter(v => {
+      if (search && !v.name.toLowerCase().includes(search.toLowerCase()) && !v.city.toLowerCase().includes(search.toLowerCase())) return false;
+      if (filterRegion !== "All" && v.region !== filterRegion) return false;
+      if (filterSize !== "All" && !v.eventSizes.includes(filterSize)) return false;
+      if (filterStatus !== "All" && v.status !== filterStatus) return false;
+      if (filterVisited === "Yes" && !v.visited) return false;
+      if (filterVisited === "No" && v.visited) return false;
+      if (filterPrivate && !v.privateRoom) return false;
+      if (filterAV && !v.av) return false;
+      if (filterDietary && !v.dietary) return false;
+      if (filterExclusivity > 0 && v.exclusivity < filterExclusivity) return false;
+      if (v.pricePerHead > budgetMax && v.pricePerHead > 0) return false;
       return true;
     });
-    r.sort((a,b)=>sortBy==="name"?a.name.localeCompare(b.name):sortBy==="price"?a.pricePerHead-b.pricePerHead:sortBy==="exclusivity"?b.exclusivity-a.exclusivity:sortBy==="rating"?b.rating-a.rating:sortBy==="city"?a.city.localeCompare(b.city):0);
+    r.sort((a, b) => sortBy === "name" ? a.name.localeCompare(b.name) : sortBy === "price" ? a.pricePerHead - b.pricePerHead : sortBy === "exclusivity" ? b.exclusivity - a.exclusivity : sortBy === "rating" ? b.rating - a.rating : sortBy === "city" ? a.city.localeCompare(b.city) : 0);
     return r;
-  },[venues,search,filterRegion,filterSize,filterStatus,filterVisited,filterPrivate,filterAV,filterDietary,filterExclusivity,budgetMax,sortBy]);
-
-  const stats = useMemo(()=>({
-    total:venues.length,used:venues.filter(v=>v.status==="Used").length,
-    booked:venues.filter(v=>v.status==="Booked").length,visited:venues.filter(v=>v.visited).length,
-    regions:new Set(venues.filter(v=>v.region).map(v=>v.region)).size,
-    avgPrice:venues.length?Math.round(venues.reduce((a,v)=>a+v.pricePerHead,0)/venues.length):0,
-  }),[venues]);
-
-  const searchOneCity = useCallback(async(city,vtype)=>{
-    const res = await fetch("/api/api-proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
-      apiKey,model:"claude-sonnet-4-20250514",max_tokens:8192,
-      messages:[{role:"user",content:`List 15-20 real, currently operating ${vtype} in ${city} suited for corporate dinners.\n\nReturn ONLY a raw JSON array.\n\nEach object: {"name":"","cuisine":"","priceRange":"$$$$","estimatedPricePerHead":150,"privateRoom":true,"capacity":"10-40","description":"","neighborhood":"","knownFor":"","website":"https://venue-official-website.com (REQUIRED - always provide the real official website URL, never leave blank)","sources":""}\n\nCRITICAL: The website field must always be a real, working URL (e.g. https://www.restaurant.com). Never use empty string or placeholder. Only real venues. Output ONLY the JSON array.`}]
-    })});
-    if(!res.ok) throw new Error(`API error ${res.status}`);
+  }, [venues, search, filterRegion, filterSize, filterStatus, filterVisited, filterPrivate, filterAV, filterDietary, filterExclusivity, budgetMax, sortBy]);
+  const stats = useMemo(() => ({
+    total: venues.length,
+    used: venues.filter(v => v.status === "Used").length,
+    booked: venues.filter(v => v.status === "Booked").length,
+    visited: venues.filter(v => v.visited).length,
+    regions: new Set(venues.filter(v => v.region).map(v => v.region)).size,
+    avgPrice: venues.length ? Math.round(venues.reduce((a, v) => a + v.pricePerHead, 0) / venues.length) : 0
+  }), [venues]);
+  const searchOneCity = useCallback(async (city, vtype) => {
+    const res = await fetch("/api/api-proxy", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        apiKey,
+        model: "claude-sonnet-4-20250514",
+        max_tokens: 8192,
+        messages: [{
+          role: "user",
+          content: `List 15-20 real, currently operating ${vtype} in ${city} suited for corporate dinners.\n\nReturn ONLY a raw JSON array.\n\nEach object: {"name":"","cuisine":"","priceRange":"$$$$","estimatedPricePerHead":150,"privateRoom":true,"capacity":"10-40","description":"","neighborhood":"","knownFor":"","website":"https://venue-official-website.com (REQUIRED - always provide the real official website URL, never leave blank)","sources":""}\n\nCRITICAL: The website field must always be a real, working URL (e.g. https://www.restaurant.com). Never use empty string or placeholder. Only real venues. Output ONLY the JSON array.`
+        }]
+      })
+    });
+    if (!res.ok) throw new Error(`API error ${res.status}`);
     const data = await res.json();
-    const txt = data.content.filter(b=>b.type==="text").map(b=>b.text).join("\n");
-    const clean = txt.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim();
+    const txt = data.content.filter(b => b.type === "text").map(b => b.text).join("\n");
+    const clean = txt.replace(/```json\s*/g, "").replace(/```\s*/g, "").trim();
     let parsed = null;
-    try{parsed=JSON.parse(clean)}catch(e){}
-    if(!parsed){const m=clean.match(/\[\s*\{[\s\S]*\}\s*\]/);if(m)try{parsed=JSON.parse(m[0])}catch(e){}}
-    if(!parsed){const s=clean.indexOf("["),e=clean.lastIndexOf("]");if(s>-1&&e>s)try{parsed=JSON.parse(clean.substring(s,e+1))}catch(e){}}
-    if(!parsed||!Array.isArray(parsed)||!parsed.length) throw new Error(`No results for ${city}`);
-    return parsed.map((v,i)=>({
-      name:v.name||"Unknown",cuisine:v.cuisine||"",priceRange:v.priceRange||"$$$",
-      estimatedPricePerHead:v.estimatedPricePerHead||0,privateRoom:v.privateRoom!==false,
-      capacity:v.capacity||"",description:v.description||"",neighborhood:v.neighborhood||"",
-      knownFor:v.knownFor||"",website:v.website||"",sources:v.sources||"",city,
-      _id:`disc-${Date.now()}-${city.replace(/\s/g,"")}-${i}`
-    }));
-  },[apiKey]);
-
-  const discoverVenues = useCallback(async()=>{
-    if(!apiKey){setShowSettings(true);return;}
-    const cities = searchMode==="batch"
-      ? batchCities.split(/[,\n]/).map(c=>c.trim()).filter(Boolean)
-      : [discoverCity.trim()];
-    if(!cities.length||!cities[0]) return;
-    setIsSearching(true);setSearchError("");setDiscoveredVenues([]);setSavedIds(new Set());
-    setBatchProgress({current:0,total:cities.length,currentCity:cities[0]});
-    const errors=[];
-    for(let i=0;i<cities.length;i++){
-      const city=cities[i];
-      setBatchProgress({current:i,total:cities.length,currentCity:city});
-      try{const vs=await searchOneCity(city,discoverType);setDiscoveredVenues(p=>[...p,...vs]);}
-      catch(err){errors.push(city);}
+    try {
+      parsed = JSON.parse(clean);
+    } catch (e) {}
+    if (!parsed) {
+      const m = clean.match(/\[\s*\{[\s\S]*\}\s*\]/);
+      if (m) try {
+        parsed = JSON.parse(m[0]);
+      } catch (e) {}
     }
-    setBatchProgress(p=>({...p,current:cities.length}));
-    if(errors.length) setSearchError(`Could not search: ${errors.join(", ")}`);
+    if (!parsed) {
+      const s = clean.indexOf("["),
+        e = clean.lastIndexOf("]");
+      if (s > -1 && e > s) try {
+        parsed = JSON.parse(clean.substring(s, e + 1));
+      } catch (e) {}
+    }
+    if (!parsed || !Array.isArray(parsed) || !parsed.length) throw new Error(`No results for ${city}`);
+    return parsed.map((v, i) => ({
+      name: v.name || "Unknown",
+      cuisine: v.cuisine || "",
+      priceRange: v.priceRange || "$$$",
+      estimatedPricePerHead: v.estimatedPricePerHead || 0,
+      privateRoom: v.privateRoom !== false,
+      capacity: v.capacity || "",
+      description: v.description || "",
+      neighborhood: v.neighborhood || "",
+      knownFor: v.knownFor || "",
+      website: v.website || "",
+      sources: v.sources || "",
+      city,
+      _id: `disc-${Date.now()}-${city.replace(/\s/g, "")}-${i}`
+    }));
+  }, [apiKey]);
+  const discoverVenues = useCallback(async () => {
+    if (!apiKey) {
+      setShowSettings(true);
+      return;
+    }
+    const cities = searchMode === "batch" ? batchCities.split(/[,\n]/).map(c => c.trim()).filter(Boolean) : [discoverCity.trim()];
+    if (!cities.length || !cities[0]) return;
+    setIsSearching(true);
+    setSearchError("");
+    setDiscoveredVenues([]);
+    setSavedIds(new Set());
+    setBatchProgress({
+      current: 0,
+      total: cities.length,
+      currentCity: cities[0]
+    });
+    const errors = [];
+    for (let i = 0; i < cities.length; i++) {
+      const city = cities[i];
+      setBatchProgress({
+        current: i,
+        total: cities.length,
+        currentCity: city
+      });
+      try {
+        const vs = await searchOneCity(city, discoverType);
+        setDiscoveredVenues(p => [...p, ...vs]);
+      } catch (err) {
+        errors.push(city);
+      }
+    }
+    setBatchProgress(p => ({
+      ...p,
+      current: cities.length
+    }));
+    if (errors.length) setSearchError(`Could not search: ${errors.join(", ")}`);
     setIsSearching(false);
-  },[discoverCity,discoverType,apiKey,searchMode,batchCities,searchOneCity]);
-
-  const saveDiscovered = useCallback((dv)=>{
-    const city=dv.city||discoverCity.trim();
-    setVenues(p=>[...p,{
-      id:Date.now()+Math.random(),name:dv.name,city,region:guessRegion(city),
-      eventSizes:[],pricePerHead:dv.estimatedPricePerHead||0,privateRoom:dv.privateRoom||false,
-      av:false,dietary:false,exclusivity:dv.priceRange==="$$$$$"?5:dv.priceRange==="$$$$"?4:3,
-      status:"Prospect",visited:false,website:dv.website||"",
-      notes:`${dv.description||""}\n\nNeighborhood: ${dv.neighborhood||"â"}\nKnown for: ${dv.knownFor||"â"}\nCuisine: ${dv.cuisine||"â"}\nCapacity: ${dv.capacity||"â"}${dv.sources?`\nFound on: ${dv.sources}`:""}`.trim(),
-      contact:"",phone:"",lastUsed:"",rating:0,
+  }, [discoverCity, discoverType, apiKey, searchMode, batchCities, searchOneCity]);
+  const saveDiscovered = useCallback(dv => {
+    const city = dv.city || discoverCity.trim();
+    setVenues(p => [...p, {
+      id: Date.now() + Math.random(),
+      name: dv.name,
+      city,
+      region: guessRegion(city),
+      eventSizes: [],
+      pricePerHead: dv.estimatedPricePerHead || 0,
+      privateRoom: dv.privateRoom || false,
+      av: false,
+      dietary: false,
+      exclusivity: dv.priceRange === "$$$$$" ? 5 : dv.priceRange === "$$$$" ? 4 : 3,
+      status: "Prospect",
+      visited: false,
+      website: dv.website || "",
+      notes: `${dv.description || ""}\n\nNeighborhood: ${dv.neighborhood || "Ã¢ÂÂ"}\nKnown for: ${dv.knownFor || "Ã¢ÂÂ"}\nCuisine: ${dv.cuisine || "Ã¢ÂÂ"}\nCapacity: ${dv.capacity || "Ã¢ÂÂ"}${dv.sources ? `\nFound on: ${dv.sources}` : ""}`.trim(),
+      contact: "",
+      phone: "",
+      lastUsed: "",
+      rating: 0
     }]);
-    setSavedIds(p=>new Set([...p,dv._id]));
-  },[discoverCity]);
-
-  const exportCSV = useCallback(()=>{
-    const hdrs=["Name","City","Region","Website","Price/Head","Status","Visited","Private Room","AV","Dietary","Exclusivity","Rating","Contact","Phone","Notes"];
-    const rows=venues.map(v=>[v.name,v.city,v.region,v.website||"",v.pricePerHead,v.status,v.visited?"Yes":"No",v.privateRoom?"Yes":"No",v.av?"Yes":"No",v.dietary?"Yes":"No",v.exclusivity,v.rating,v.contact,v.phone,`"${(v.notes||"").replace(/"/g,'""')}"`]);
-    const csv=[hdrs.join(","),...rows.map(r=>r.join(","))].join("\n");
-    const blob=new Blob([csv],{type:"text/csv"});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement("a");a.href=url;a.download="venue-tracker.csv";a.click();
+    setSavedIds(p => new Set([...p, dv._id]));
+  }, [discoverCity]);
+  const exportCSV = useCallback(() => {
+    const hdrs = ["Name", "City", "Region", "Website", "Price/Head", "Status", "Visited", "Private Room", "AV", "Dietary", "Exclusivity", "Rating", "Contact", "Phone", "Notes"];
+    const rows = venues.map(v => [v.name, v.city, v.region, v.website || "", v.pricePerHead, v.status, v.visited ? "Yes" : "No", v.privateRoom ? "Yes" : "No", v.av ? "Yes" : "No", v.dietary ? "Yes" : "No", v.exclusivity, v.rating, v.contact, v.phone, `"${(v.notes || "").replace(/"/g, '""')}"`]);
+    const csv = [hdrs.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csv], {
+      type: "text/csv"
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "venue-tracker.csv";
+    a.click();
     URL.revokeObjectURL(url);
-  },[venues]);
-
-  const callAI = async(prompt,max=4096)=>{
-    if(!apiKey){setShowSettings(true);return null;}
-    const res=await fetch("/api/api-proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({apiKey,model:"claude-sonnet-4-20250514",max_tokens:max,messages:[{role:"user",content:prompt}]})});
-    if(!res.ok) throw new Error(`API error ${res.status}`);
-    const d=await res.json();
-    return d.content.filter(b=>b.type==="text").map(b=>b.text).join("\n");
+  }, [venues]);
+  const callAI = async (prompt, max = 4096) => {
+    if (!apiKey) {
+      setShowSettings(true);
+      return null;
+    }
+    const res = await fetch("/api/api-proxy", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        apiKey,
+        model: "claude-sonnet-4-20250514",
+        max_tokens: max,
+        messages: [{
+          role: "user",
+          content: prompt
+        }]
+      })
+    });
+    if (!res.ok) throw new Error(`API error ${res.status}`);
+    const d = await res.json();
+    return d.content.filter(b => b.type === "text").map(b => b.text).join("\n");
+  };
+  const generateEmail = async v => {
+    setAiLoading(true);
+    setAiResult("");
+    try {
+      setAiResult(await callAI(`Draft 3 versions (Formal, Friendly, Brief) of a professional booking email for a private event.\n\nVenue: ${v.name}, ${v.city}${v.website ? "\nWebsite: " + v.website : ""}\nDate: ${emailForm.date || "TBD"}\nGuests: ${emailForm.guestCount}\nEvent: ${emailForm.eventType}\nNotes: ${emailForm.notes || "None"}\nContact: ${v.contact || "Events Manager"}\n\nFormat with "--- VERSION 1: FORMAL ---", "--- VERSION 2: FRIENDLY ---", "--- VERSION 3: BRIEF ---". Sign off as "[Your Name], Field Marketing"`));
+    } catch (e) {
+      setAiResult("Error: " + e.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+  const generateBrief = async () => {
+    setAiLoading(true);
+    setAiResult("");
+    const cv = venues.filter(v => v.city.toLowerCase().includes(briefForm.city.toLowerCase()));
+    try {
+      setAiResult(await callAI(`Create a comprehensive event brief.\n\nAccount: ${briefForm.accountName}\nCity: ${briefForm.city}\nGuests: ${briefForm.guestCount}\nBudget: $${briefForm.budget}\nType: ${briefForm.eventType}\nGoals: ${briefForm.goals || "Build relationships, generate pipeline"}\n\n${cv.length > 0 ? "Venues in tracker for this city:\n" + cv.map(v => `- ${v.name}: $${v.pricePerHead}/head, ${v.status}${v.website ? ", " + v.website : ""}`).join("\n") : "No venues in tracker yet."}\n\nInclude: Event Overview, Target Attendees, Venue Recommendations, Menu, Budget Breakdown, Run of Show, Follow-up Plan, Success Metrics`));
+    } catch (e) {
+      setAiResult("Error: " + e.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+  const generateComparison = async () => {
+    const s = venues.filter(v => compareIds.has(v.id));
+    if (s.length < 2) return;
+    setAiLoading(true);
+    setAiResult("");
+    try {
+      setAiResult(await callAI(`Side-by-side venue comparison for stakeholder review.\n\n${s.map((v, i) => `VENUE ${i + 1}: ${v.name}\n- City: ${v.city} (${v.region})\n- Price/head: $${v.pricePerHead}\n- Private: ${v.privateRoom ? "Y" : "N"} | AV: ${v.av ? "Y" : "N"} | Exclusivity: ${v.exclusivity}/5 | Rating: ${v.rating}/5\n- Status: ${v.status} | Visited: ${v.visited ? "Y" : "N"}\n- Website: ${v.website || "Ã¢ÂÂ"}\n- Notes: ${v.notes || "Ã¢ÂÂ"}`).join("\n\n")}\n\nInclude: Executive Summary, Comparison Table, Analysis, Cost for 20 & 40 guests, Ranking, Booking Notes`));
+    } catch (e) {
+      setAiResult("Error: " + e.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+  const generateMatch = async () => {
+    setAiLoading(true);
+    setAiResult("");
+    try {
+      setAiResult(await callAI(`Recommend venues from our tracker for this event.\n\nEvent: ${matchForm.description}\n\nVenues:\n${venues.map(v => `- ${v.name} (${v.city}): $${v.pricePerHead}/head | Private: ${v.privateRoom ? "Y" : "N"} | Exclusivity: ${v.exclusivity}/5 | Rating: ${v.rating}/5 | Status: ${v.status}`).join("\n")}\n\nInclude: Best Matches (top 3-5 with reasons), Gaps, Logistics Tips`));
+    } catch (e) {
+      setAiResult("Error: " + e.message);
+    } finally {
+      setAiLoading(false);
+    }
+  };
+  const generateMenu = async v => {
+    setAiLoading(true);
+    setAiResult("");
+    try {
+      setAiResult(await callAI(`Menu plan for a corporate event.\n\nVenue: ${v.name}, ${v.city} | $${v.pricePerHead}/head\nGuests: ${menuForm.guestCount}\nDietary: ${menuForm.dietaryNeeds || "Mix Ã¢ÂÂ some vegetarian, gluten-free"}\nPreferences: ${menuForm.preferences || "Upscale corporate dining"}\n\nInclude: Cocktail hour, 3-course menu, Dietary accommodations, Wine pairings, Cost breakdown, Questions for venue, Things to confirm`));
+    } catch (e) {
+      setAiResult("Error: " + e.message);
+    } finally {
+      setAiLoading(false);
+    }
   };
 
-  const generateEmail=async(v)=>{setAiLoading(true);setAiResult("");try{setAiResult(await callAI(`Draft 3 versions (Formal, Friendly, Brief) of a professional booking email for a private event.\n\nVenue: ${v.name}, ${v.city}${v.website?"\nWebsite: "+v.website:""}\nDate: ${emailForm.date||"TBD"}\nGuests: ${emailForm.guestCount}\nEvent: ${emailForm.eventType}\nNotes: ${emailForm.notes||"None"}\nContact: ${v.contact||"Events Manager"}\n\nFormat with "--- VERSION 1: FORMAL ---", "--- VERSION 2: FRIENDLY ---", "--- VERSION 3: BRIEF ---". Sign off as "[Your Name], Field Marketing"`))}catch(e){setAiResult("Error: "+e.message)}finally{setAiLoading(false)}};
+  // Ã¢ÂÂÃ¢ÂÂ VenueCard Ã¢ÂÂÃ¢ÂÂ
+  const VenueCard = useCallback(({
+    venue
+  }) => /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    onClick: e => {
+      e.stopPropagation();
+      toggleCompare(venue.id);
+    },
+    style: {
+      position: "absolute",
+      top: 10,
+      right: 10,
+      width: 22,
+      height: 22,
+      borderRadius: 4,
+      border: `2px solid ${compareIds.has(venue.id) ? "#EBF245" : "rgba(255,255,255,0.8)"}`,
+      background: compareIds.has(venue.id) ? "#0A0A0A" : "rgba(0,0,0,0.25)",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      cursor: "pointer",
+      zIndex: 2,
+      fontSize: 12,
+      color: "#EBF245"
+    }
+  }, compareIds.has(venue.id) && "Ã¢ÂÂ"), /*#__PURE__*/React.createElement("div", {
+    onClick: () => {
+      setSelectedVenue(venue);
+      setIsEditing(false);
+    },
+    style: {
+      background: "#FFFFFF",
+      borderRadius: 12,
+      border: `1.5px solid ${selectedVenue?.id === venue.id ? "#0A0A0A" : "#E0E0D8"}`,
+      cursor: "pointer",
+      overflow: "hidden",
+      transition: "all 0.2s",
+      boxShadow: selectedVenue?.id === venue.id ? "0 4px 20px rgba(0,0,0,0.12)" : "0 1px 4px rgba(0,0,0,0.04)"
+    },
+    onMouseEnter: e => {
+      e.currentTarget.style.borderColor = "#0A0A0A";
+      e.currentTarget.style.transform = "translateY(-2px)";
+      e.currentTarget.style.boxShadow = "0 8px 28px rgba(0,0,0,0.1)";
+    },
+    onMouseLeave: e => {
+      e.currentTarget.style.borderColor = selectedVenue?.id === venue.id ? "#0A0A0A" : "#E0E0D8";
+      e.currentTarget.style.transform = "none";
+      e.currentTarget.style.boxShadow = selectedVenue?.id === venue.id ? "0 4px 20px rgba(0,0,0,0.12)" : "0 1px 4px rgba(0,0,0,0.04)";
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "14px 16px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      flex: 1,
+      minWidth: 0
+    }
+  }, /*#__PURE__*/React.createElement("h3", {
+    style: {
+      margin: 0,
+      fontSize: 15,
+      fontFamily: "'Playfair Display',serif",
+      color: "#0A0A0A",
+      fontWeight: 600,
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap"
+    }
+  }, venue.name), /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: "2px 0 0",
+      fontSize: 12,
+      color: "#6B6B65"
+    }
+  }, venue.city, venue.region ? ` ÃÂ· ${venue.region}` : "")), /*#__PURE__*/React.createElement(Tag, {
+    filled: true,
+    color: STATUS_COLORS[venue.status]
+  }, venue.status)), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10,
+      marginBottom: 8
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 18,
+      fontWeight: 700,
+      color: "#0A0A0A",
+      fontFamily: "'Playfair Display',serif"
+    }
+  }, "$", venue.pricePerHead), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#A0A09A"
+    }
+  }, "/head"), venue.visited && /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#1A5C3A",
+      fontWeight: 700,
+      background: "#EDFAF3",
+      padding: "2px 8px",
+      borderRadius: 6,
+      border: "1px solid #B7E4C7"
+    }
+  }, "\xC3\xA2\xC2\x9C\xC2\x93 Visited"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginLeft: "auto"
+    }
+  }, /*#__PURE__*/React.createElement(Stars, {
+    rating: venue.exclusivity,
+    size: 13
+  }))), venue.website && /*#__PURE__*/React.createElement("a", {
+    href: venue.website,
+    target: "_blank",
+    rel: "noopener noreferrer",
+    onClick: e => e.stopPropagation(),
+    style: {
+      fontSize: 11,
+      color: "#4A6FA5",
+      margin: "0 0 8px",
+      overflow: "hidden",
+      textOverflow: "ellipsis",
+      whiteSpace: "nowrap",
+      display: "block",
+      textDecoration: "none"
+    },
+    onMouseEnter: e => e.currentTarget.style.textDecoration = "underline",
+    onMouseLeave: e => e.currentTarget.style.textDecoration = "none"
+  }, "\xC3\xB0\xC2\x9F\xC2\x94\xC2\x97 ", venue.website), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 5,
+      flexWrap: "wrap"
+    }
+  }, venue.privateRoom && /*#__PURE__*/React.createElement(Tag, {
+    color: "#2A7A5A"
+  }, "Private"), venue.av && /*#__PURE__*/React.createElement(Tag, {
+    color: "#4A6FA5"
+  }, "AV"), venue.dietary && /*#__PURE__*/React.createElement(Tag, {
+    color: "#6B4FA5"
+  }, "Dietary"), venue.eventSizes.map(s => /*#__PURE__*/React.createElement(Tag, {
+    key: s,
+    color: "#6B6B65"
+  }, s.split(" ")[0]))), venue.rating > 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: 8,
+      paddingTop: 8,
+      borderTop: "1px solid #F4F4F0",
+      display: "flex",
+      alignItems: "center",
+      gap: 6
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 10,
+      color: "#A0A09A",
+      textTransform: "uppercase",
+      letterSpacing: "0.06em"
+    }
+  }, "Rating"), /*#__PURE__*/React.createElement(Stars, {
+    rating: venue.rating,
+    size: 12
+  }))))), [selectedVenue, compareIds, toggleCompare]);
+  const VenueRow = ({
+    venue
+  }) => /*#__PURE__*/React.createElement("tr", {
+    onClick: () => {
+      setSelectedVenue(venue);
+      setIsEditing(false);
+    },
+    style: {
+      cursor: "pointer"
+    },
+    onMouseEnter: e => e.currentTarget.style.background = "#F4F4F0",
+    onMouseLeave: e => e.currentTarget.style.background = "transparent"
+  }, /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px 14px",
+      fontFamily: "'Playfair Display',serif",
+      fontWeight: 600,
+      fontSize: 14,
+      color: "#0A0A0A"
+    }
+  }, venue.name), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px 12px",
+      fontSize: 13,
+      color: "#5A5348"
+    }
+  }, venue.city), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px 12px",
+      fontSize: 13,
+      color: "#6B6B65"
+    }
+  }, venue.region), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px 12px",
+      fontSize: 14,
+      fontWeight: 700
+    }
+  }, "$", venue.pricePerHead), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px 12px"
+    }
+  }, venue.website ? /*#__PURE__*/React.createElement("a", {
+    href: venue.website,
+    target: "_blank",
+    rel: "noopener noreferrer",
+    onClick: e => e.stopPropagation(),
+    style: {
+      fontSize: 12,
+      color: "#4A6FA5",
+      textDecoration: "none"
+    }
+  }, "\xC3\xB0\xC2\x9F\xC2\x94\xC2\x97 Visit") : "Ã¢ÂÂ"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px 12px",
+      fontSize: 13
+    }
+  }, venue.visited ? /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#1A5C3A",
+      fontWeight: 700
+    }
+  }, "\xC3\xA2\xC2\x9C\xC2\x93 Yes") : /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#A0A09A"
+    }
+  }, "No")), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px 12px"
+    }
+  }, /*#__PURE__*/React.createElement(Stars, {
+    rating: venue.exclusivity,
+    size: 13
+  })), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px 12px"
+    }
+  }, /*#__PURE__*/React.createElement(Tag, {
+    filled: true,
+    color: STATUS_COLORS[venue.status]
+  }, venue.status)), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px 12px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 3
+    }
+  }, venue.privateRoom && /*#__PURE__*/React.createElement(Tag, {
+    color: "#2A7A5A"
+  }, "P"), venue.av && /*#__PURE__*/React.createElement(Tag, {
+    color: "#4A6FA5"
+  }, "AV"), venue.dietary && /*#__PURE__*/React.createElement(Tag, {
+    color: "#6B4FA5"
+  }, "D"))), /*#__PURE__*/React.createElement("td", {
+    style: {
+      padding: "12px 12px"
+    }
+  }, /*#__PURE__*/React.createElement(Stars, {
+    rating: venue.rating,
+    size: 13
+  })));
 
-  const generateBrief=async()=>{setAiLoading(true);setAiResult("");const cv=venues.filter(v=>v.city.toLowerCase().includes(briefForm.city.toLowerCase()));try{setAiResult(await callAI(`Create a comprehensive event brief.\n\nAccount: ${briefForm.accountName}\nCity: ${briefForm.city}\nGuests: ${briefForm.guestCount}\nBudget: $${briefForm.budget}\nType: ${briefForm.eventType}\nGoals: ${briefForm.goals||"Build relationships, generate pipeline"}\n\n${cv.length>0?"Venues in tracker for this city:\n"+cv.map(v=>`- ${v.name}: $${v.pricePerHead}/head, ${v.status}${v.website?", "+v.website:""}`).join("\n"):"No venues in tracker yet."}\n\nInclude: Event Overview, Target Attendees, Venue Recommendations, Menu, Budget Breakdown, Run of Show, Follow-up Plan, Success Metrics`))}catch(e){setAiResult("Error: "+e.message)}finally{setAiLoading(false)}};
-
-  const generateComparison=async()=>{const s=venues.filter(v=>compareIds.has(v.id));if(s.length<2)return;setAiLoading(true);setAiResult("");try{setAiResult(await callAI(`Side-by-side venue comparison for stakeholder review.\n\n${s.map((v,i)=>`VENUE ${i+1}: ${v.name}\n- City: ${v.city} (${v.region})\n- Price/head: $${v.pricePerHead}\n- Private: ${v.privateRoom?"Y":"N"} | AV: ${v.av?"Y":"N"} | Exclusivity: ${v.exclusivity}/5 | Rating: ${v.rating}/5\n- Status: ${v.status} | Visited: ${v.visited?"Y":"N"}\n- Website: ${v.website||"â"}\n- Notes: ${v.notes||"â"}`).join("\n\n")}\n\nInclude: Executive Summary, Comparison Table, Analysis, Cost for 20 & 40 guests, Ranking, Booking Notes`))}catch(e){setAiResult("Error: "+e.message)}finally{setAiLoading(false)}};
-
-  const generateMatch=async()=>{setAiLoading(true);setAiResult("");try{setAiResult(await callAI(`Recommend venues from our tracker for this event.\n\nEvent: ${matchForm.description}\n\nVenues:\n${venues.map(v=>`- ${v.name} (${v.city}): $${v.pricePerHead}/head | Private: ${v.privateRoom?"Y":"N"} | Exclusivity: ${v.exclusivity}/5 | Rating: ${v.rating}/5 | Status: ${v.status}`).join("\n")}\n\nInclude: Best Matches (top 3-5 with reasons), Gaps, Logistics Tips`))}catch(e){setAiResult("Error: "+e.message)}finally{setAiLoading(false)}};
-
-  const generateMenu=async(v)=>{setAiLoading(true);setAiResult("");try{setAiResult(await callAI(`Menu plan for a corporate event.\n\nVenue: ${v.name}, ${v.city} | $${v.pricePerHead}/head\nGuests: ${menuForm.guestCount}\nDietary: ${menuForm.dietaryNeeds||"Mix â some vegetarian, gluten-free"}\nPreferences: ${menuForm.preferences||"Upscale corporate dining"}\n\nInclude: Cocktail hour, 3-course menu, Dietary accommodations, Wine pairings, Cost breakdown, Questions for venue, Things to confirm`))}catch(e){setAiResult("Error: "+e.message)}finally{setAiLoading(false)}};
-
-  // ââ VenueCard ââ
-  const VenueCard = useCallback(({venue})=>(
-    <div style={{position:"relative"}}>
-      <div onClick={e=>{e.stopPropagation();toggleCompare(venue.id);}}
-        style={{position:"absolute",top:10,right:10,width:22,height:22,borderRadius:4,
-          border:`2px solid ${compareIds.has(venue.id)?"#EBF245":"rgba(255,255,255,0.8)"}`,
-          background:compareIds.has(venue.id)?"#0A0A0A":"rgba(0,0,0,0.25)",
-          display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:2,fontSize:12,color:"#EBF245"}}>
-        {compareIds.has(venue.id)&&"â"}
-      </div>
-      <div onClick={()=>{setSelectedVenue(venue);setIsEditing(false);}}
-        style={{background:"#FFFFFF",borderRadius:12,border:`1.5px solid ${selectedVenue?.id===venue.id?"#0A0A0A":"#E0E0D8"}`,
-          cursor:"pointer",overflow:"hidden",transition:"all 0.2s",
-          boxShadow:selectedVenue?.id===venue.id?"0 4px 20px rgba(0,0,0,0.12)":"0 1px 4px rgba(0,0,0,0.04)"}}
-        onMouseEnter={e=>{e.currentTarget.style.borderColor="#0A0A0A";e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 28px rgba(0,0,0,0.1)";}}
-        onMouseLeave={e=>{e.currentTarget.style.borderColor=selectedVenue?.id===venue.id?"#0A0A0A":"#E0E0D8";e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow=selectedVenue?.id===venue.id?"0 4px 20px rgba(0,0,0,0.12)":"0 1px 4px rgba(0,0,0,0.04)";}}>
-        <div style={{padding:"14px 16px"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-            <div style={{flex:1,minWidth:0}}>
-              <h3 style={{margin:0,fontSize:15,fontFamily:"'Playfair Display',serif",color:"#0A0A0A",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{venue.name}</h3>
-              <p style={{margin:"2px 0 0",fontSize:12,color:"#6B6B65"}}>{venue.city}{venue.region?` Â· ${venue.region}`:""}</p>
-            </div>
-            <Tag filled color={STATUS_COLORS[venue.status]}>{venue.status}</Tag>
-          </div>
-          <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:8}}>
-            <span style={{fontSize:18,fontWeight:700,color:"#0A0A0A",fontFamily:"'Playfair Display',serif"}}>${venue.pricePerHead}</span>
-            <span style={{fontSize:11,color:"#A0A09A"}}>/head</span>
-            {venue.visited&&<span style={{fontSize:11,color:"#1A5C3A",fontWeight:700,background:"#EDFAF3",padding:"2px 8px",borderRadius:6,border:"1px solid #B7E4C7"}}>â Visited</span>}
-            <div style={{marginLeft:"auto"}}><Stars rating={venue.exclusivity} size={13}/></div>
-          </div>
-          {venue.website&&<a href={venue.website} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}
-            style={{fontSize:11,color:"#4A6FA5",margin:"0 0 8px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block",textDecoration:"none"}}
-            onMouseEnter={e=>e.currentTarget.style.textDecoration="underline"}
-            onMouseLeave={e=>e.currentTarget.style.textDecoration="none"}>
-            ð {venue.website}
-          </a>}
-          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-            {venue.privateRoom&&<Tag color="#2A7A5A">Private</Tag>}
-            {venue.av&&<Tag color="#4A6FA5">AV</Tag>}
-            {venue.dietary&&<Tag color="#6B4FA5">Dietary</Tag>}
-            {venue.eventSizes.map(s=><Tag key={s} color="#6B6B65">{s.split(" ")[0]}</Tag>)}
-          </div>
-          {venue.rating>0&&<div style={{marginTop:8,paddingTop:8,borderTop:"1px solid #F4F4F0",display:"flex",alignItems:"center",gap:6}}>
-            <span style={{fontSize:10,color:"#A0A09A",textTransform:"uppercase",letterSpacing:"0.06em"}}>Rating</span>
-            <Stars rating={venue.rating} size={12}/>
-          </div>}
-        </div>
-      </div>
-    </div>
-  ),[selectedVenue,compareIds,toggleCompare]);
-
-  const VenueRow = ({venue}) => (
-    <tr onClick={()=>{setSelectedVenue(venue);setIsEditing(false);}} style={{cursor:"pointer"}}
-      onMouseEnter={e=>e.currentTarget.style.background="#F4F4F0"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-      <td style={{padding:"12px 14px",fontFamily:"'Playfair Display',serif",fontWeight:600,fontSize:14,color:"#0A0A0A"}}>{venue.name}</td>
-      <td style={{padding:"12px 12px",fontSize:13,color:"#5A5348"}}>{venue.city}</td>
-      <td style={{padding:"12px 12px",fontSize:13,color:"#6B6B65"}}>{venue.region}</td>
-      <td style={{padding:"12px 12px",fontSize:14,fontWeight:700}}>${venue.pricePerHead}</td>
-      <td style={{padding:"12px 12px"}}>{venue.website?<a href={venue.website} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{fontSize:12,color:"#4A6FA5",textDecoration:"none"}}>ð Visit</a>:"â"}</td>
-      <td style={{padding:"12px 12px",fontSize:13}}>{venue.visited?<span style={{color:"#1A5C3A",fontWeight:700}}>â Yes</span>:<span style={{color:"#A0A09A"}}>No</span>}</td>
-      <td style={{padding:"12px 12px"}}><Stars rating={venue.exclusivity} size={13}/></td>
-      <td style={{padding:"12px 12px"}}><Tag filled color={STATUS_COLORS[venue.status]}>{venue.status}</Tag></td>
-      <td style={{padding:"12px 12px"}}><div style={{display:"flex",gap:3}}>{venue.privateRoom&&<Tag color="#2A7A5A">P</Tag>}{venue.av&&<Tag color="#4A6FA5">AV</Tag>}{venue.dietary&&<Tag color="#6B4FA5">D</Tag>}</div></td>
-      <td style={{padding:"12px 12px"}}><Stars rating={venue.rating} size={13}/></td>
-    </tr>
-  );
-
-  // ââ DetailPanel ââ
-  const DetailPanel = ({venue}) => {
-    const [ed,setEd] = useState({...venue});
-    useEffect(()=>{setEd({...venue});},[venue.id]);
-    return (
-      <div style={{position:"fixed",top:0,right:0,width:520,height:"100vh",background:"#FDFCFA",borderLeft:"1px solid #E0E0D8",zIndex:100,overflowY:"auto",boxShadow:"-8px 0 40px rgba(0,0,0,0.08)",animation:"slideInRight 0.25s ease"}}>
-        <div style={{padding:"24px 28px",borderBottom:"1px solid #E0E0D8",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div style={{flex:1}}>
-            {isEditing?<input value={ed.name} onChange={e=>setEd({...ed,name:e.target.value})} style={{...inp,fontSize:18,fontWeight:600,fontFamily:"'Playfair Display',serif"}}/>
-              :<h2 style={{margin:0,fontSize:20,fontFamily:"'Playfair Display',serif",color:"#0A0A0A",fontWeight:600}}>{venue.name}</h2>}
-            {isEditing?(
-              <div style={{display:"flex",gap:8,marginTop:8}}>
-                <input value={ed.city} onChange={e=>setEd({...ed,city:e.target.value,region:guessRegion(e.target.value)||ed.region})} placeholder="City" style={{...inp,width:140}}/>
-                <select value={ed.region} onChange={e=>setEd({...ed,region:e.target.value})} style={sel}>
-                  <option value="">Region</option>
-                  {Object.keys(REGIONS).map(r=><option key={r}>{r}</option>)}
-                </select>
-              </div>
-            ):<p style={{margin:"3px 0 0",fontSize:13,color:"#6B6B65"}}>{venue.city}{venue.region?` Â· ${venue.region}`:""}</p>}
-          </div>
-          <button onClick={()=>{setSelectedVenue(null);setIsEditing(false);}} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#A0A09A",padding:4}}>â</button>
-        </div>
-        <div style={{padding:"20px 28px"}}>
-          <div style={{display:"flex",gap:10,marginBottom:16,flexWrap:"wrap",alignItems:"center"}}>
-            {isEditing?<select value={ed.status} onChange={e=>setEd({...ed,status:e.target.value})} style={sel}>{STATUSES.map(s=><option key={s}>{s}</option>)}</select>
-              :<Tag filled color={STATUS_COLORS[venue.status]}>{venue.status}</Tag>}
-            <label style={{display:"flex",alignItems:"center",gap:7,cursor:"pointer",fontSize:13,color:"#3A3A35",padding:"5px 12px",borderRadius:20,
-              border:`1.5px solid ${(isEditing?ed.visited:venue.visited)?"#1A5C3A":"#D8D8D0"}`,
-              background:(isEditing?ed.visited:venue.visited)?"#EDFAF3":"transparent"}}>
-              <input type="checkbox" checked={isEditing?ed.visited:venue.visited} onChange={e=>isEditing&&setEd({...ed,visited:e.target.checked})} disabled={!isEditing} style={{accentColor:"#1A5C3A",width:13,height:13}}/>
-              <span style={{fontWeight:600,color:(isEditing?ed.visited:venue.visited)?"#1A5C3A":"#6B6B65"}}>Visited</span>
-            </label>
-            {venue.privateRoom&&<Tag color="#2A7A5A">Private Room</Tag>}
-            {venue.av&&<Tag color="#4A6FA5">AV</Tag>}
-            {venue.dietary&&<Tag color="#6B4FA5">Dietary</Tag>}
-          </div>
-          <div style={{marginBottom:16}}>
-            <label style={lbl}>Website</label>
-            {isEditing?<input value={ed.website||""} onChange={e=>setEd({...ed,website:e.target.value})} placeholder="https://..." style={{...inp,marginTop:4}}/>
-              :<div style={{marginTop:4,display:"flex",alignItems:"center",gap:10}}>
-                {venue.website
-                  ?<React.Fragment>
-                    <a href={venue.website} target="_blank" rel="noopener noreferrer"
-                      style={{fontSize:13,color:"#4A6FA5",textDecoration:"none",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
-                      onMouseEnter={e=>e.currentTarget.style.textDecoration="underline"}
-                      onMouseLeave={e=>e.currentTarget.style.textDecoration="none"}>
-                      ð {venue.website}
-                    </a>
-                    <a href={venue.website} target="_blank" rel="noopener noreferrer"
-                      style={{...btnP,padding:"6px 14px",fontSize:11,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>
-                      Visit Site â
-                    </a>
-                  </React.Fragment>
-                  :<span style={{fontSize:13,color:"#A0A09A"}}>â</span>}
-              </div>}
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20}}>
-            <div><label style={lbl}>Price / Head</label>
-              {isEditing?<input type="number" value={ed.pricePerHead} onChange={e=>setEd({...ed,pricePerHead:+e.target.value})} style={{...inp,marginTop:4}}/>
-                :<p style={{margin:"4px 0 0",fontSize:22,fontWeight:700,color:"#0A0A0A",fontFamily:"'Playfair Display',serif"}}>${venue.pricePerHead}</p>}
-            </div>
-            <div><label style={lbl}>Exclusivity</label><div style={{marginTop:6}}><Stars rating={isEditing?ed.exclusivity:venue.exclusivity} interactive={isEditing} onRate={r=>setEd({...ed,exclusivity:r})} size={18}/></div></div>
-            <div><label style={lbl}>Your Rating</label><div style={{marginTop:6}}><Stars rating={isEditing?ed.rating:venue.rating} interactive={isEditing} onRate={r=>setEd({...ed,rating:r})} size={18}/></div></div>
-            <div><label style={lbl}>Last Used</label>
-              {isEditing?<input type="date" value={ed.lastUsed} onChange={e=>setEd({...ed,lastUsed:e.target.value})} style={{...inp,marginTop:4}}/>
-                :<p style={{margin:"4px 0 0",fontSize:14,color:"#3A3A35"}}>{venue.lastUsed||"â"}</p>}
-            </div>
-          </div>
-          <div style={{marginBottom:16}}>
-            <label style={lbl}>Event Sizes</label>
-            {isEditing?(
-              <div style={{display:"flex",gap:8,marginTop:6,flexWrap:"wrap"}}>
-                {EVENT_SIZES.map(sz=>(
-                  <label key={sz} style={{display:"flex",alignItems:"center",gap:5,fontSize:13,cursor:"pointer",color:"#3A3A35"}}>
-                    <input type="checkbox" checked={ed.eventSizes.includes(sz)} onChange={e=>setEd({...ed,eventSizes:e.target.checked?[...ed.eventSizes,sz]:ed.eventSizes.filter(s=>s!==sz)})}/>{sz}
-                  </label>
-                ))}
-              </div>
-            ):(
-              <div style={{display:"flex",gap:5,marginTop:6,flexWrap:"wrap"}}>
-                {venue.eventSizes.length?venue.eventSizes.map(s=><Tag key={s} color="#0A0A0A">{s}</Tag>):<span style={{fontSize:13,color:"#A0A09A"}}>â</span>}
-              </div>
-            )}
-          </div>
-          {isEditing&&<div style={{display:"flex",gap:14,marginBottom:16,flexWrap:"wrap"}}>
-            <Toggle checked={ed.privateRoom} onChange={v=>setEd({...ed,privateRoom:v})} label="Private Room"/>
-            <Toggle checked={ed.av} onChange={v=>setEd({...ed,av:v})} label="AV Ready"/>
-            <Toggle checked={ed.dietary} onChange={v=>setEd({...ed,dietary:v})} label="Dietary Flex"/>
-          </div>}
-          <div style={{marginBottom:16}}>
-            <label style={lbl}>Contact</label>
-            {isEditing?(
-              <div style={{display:"flex",gap:8,marginTop:4}}>
-                <input value={ed.contact} onChange={e=>setEd({...ed,contact:e.target.value})} placeholder="Name" style={{...inp,width:"50%"}}/>
-                <input value={ed.phone} onChange={e=>setEd({...ed,phone:e.target.value})} placeholder="Phone" style={{...inp,width:"50%"}}/>
-              </div>
-            ):<p style={{margin:"4px 0 0",fontSize:13,color:"#3A3A35"}}>{venue.contact?`${venue.contact}${venue.phone?` Â· ${venue.phone}`:""}`:""||"â"}</p>}
-          </div>
-          <div style={{marginBottom:20}}>
-            <label style={lbl}>Notes</label>
-            {isEditing?<textarea value={ed.notes} onChange={e=>setEd({...ed,notes:e.target.value})} rows={4} style={{...inp,marginTop:4,resize:"vertical"}}/>
-              :<p style={{margin:"4px 0 0",fontSize:13,color:"#5A5348",lineHeight:1.6,whiteSpace:"pre-line"}}>{venue.notes||"â"}</p>}
-          </div>
-          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-            {isEditing?(
-              <React.Fragment>
-                <button onClick={()=>saveVenue(ed)} style={btnP}>Save</button>
-                <button onClick={()=>setIsEditing(false)} style={btnS}>Cancel</button>
-              </React.Fragment>
-            ):(
-              <React.Fragment>
-                <button onClick={()=>setIsEditing(true)} style={btnP}>Edit</button>
-                <button onClick={()=>{setAiVenueCtx(venue);setAiModal("email");}} style={btnS}>â Email</button>
-                <button onClick={()=>{setAiVenueCtx(venue);setAiModal("menu");}} style={btnS}>ð½ Menu</button>
-                <button onClick={()=>duplicateVenue(venue)} style={btnS}>â§ Dupe</button>
-                <button onClick={()=>{if(confirm("Delete this venue?"))deleteVenue(venue.id);}} style={{...btnS,color:"#C0392B",borderColor:"#C0392B"}}>Delete</button>
-              </React.Fragment>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+  // Ã¢ÂÂÃ¢ÂÂ DetailPanel Ã¢ÂÂÃ¢ÂÂ
+  const DetailPanel = ({
+    venue
+  }) => {
+    const [ed, setEd] = useState({
+      ...venue
+    });
+    useEffect(() => {
+      setEd({
+        ...venue
+      });
+    }, [venue.id]);
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "fixed",
+        top: 0,
+        right: 0,
+        width: 520,
+        height: "100vh",
+        background: "#FDFCFA",
+        borderLeft: "1px solid #E0E0D8",
+        zIndex: 100,
+        overflowY: "auto",
+        boxShadow: "-8px 0 40px rgba(0,0,0,0.08)",
+        animation: "slideInRight 0.25s ease"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "24px 28px",
+        borderBottom: "1px solid #E0E0D8",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "flex-start"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        flex: 1
+      }
+    }, isEditing ? /*#__PURE__*/React.createElement("input", {
+      value: ed.name,
+      onChange: e => setEd({
+        ...ed,
+        name: e.target.value
+      }),
+      style: {
+        ...inp,
+        fontSize: 18,
+        fontWeight: 600,
+        fontFamily: "'Playfair Display',serif"
+      }
+    }) : /*#__PURE__*/React.createElement("h2", {
+      style: {
+        margin: 0,
+        fontSize: 20,
+        fontFamily: "'Playfair Display',serif",
+        color: "#0A0A0A",
+        fontWeight: 600
+      }
+    }, venue.name), isEditing ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        marginTop: 8
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      value: ed.city,
+      onChange: e => setEd({
+        ...ed,
+        city: e.target.value,
+        region: guessRegion(e.target.value) || ed.region
+      }),
+      placeholder: "City",
+      style: {
+        ...inp,
+        width: 140
+      }
+    }), /*#__PURE__*/React.createElement("select", {
+      value: ed.region,
+      onChange: e => setEd({
+        ...ed,
+        region: e.target.value
+      }),
+      style: sel
+    }, /*#__PURE__*/React.createElement("option", {
+      value: ""
+    }, "Region"), Object.keys(REGIONS).map(r => /*#__PURE__*/React.createElement("option", {
+      key: r
+    }, r)))) : /*#__PURE__*/React.createElement("p", {
+      style: {
+        margin: "3px 0 0",
+        fontSize: 13,
+        color: "#6B6B65"
+      }
+    }, venue.city, venue.region ? ` ÃÂ· ${venue.region}` : "")), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        setSelectedVenue(null);
+        setIsEditing(false);
+      },
+      style: {
+        background: "none",
+        border: "none",
+        fontSize: 22,
+        cursor: "pointer",
+        color: "#A0A09A",
+        padding: 4
+      }
+    }, "\xC3\xA2\xC2\x9C\xC2\x95")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "20px 28px"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 10,
+        marginBottom: 16,
+        flexWrap: "wrap",
+        alignItems: "center"
+      }
+    }, isEditing ? /*#__PURE__*/React.createElement("select", {
+      value: ed.status,
+      onChange: e => setEd({
+        ...ed,
+        status: e.target.value
+      }),
+      style: sel
+    }, STATUSES.map(s => /*#__PURE__*/React.createElement("option", {
+      key: s
+    }, s))) : /*#__PURE__*/React.createElement(Tag, {
+      filled: true,
+      color: STATUS_COLORS[venue.status]
+    }, venue.status), /*#__PURE__*/React.createElement("label", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 7,
+        cursor: "pointer",
+        fontSize: 13,
+        color: "#3A3A35",
+        padding: "5px 12px",
+        borderRadius: 20,
+        border: `1.5px solid ${(isEditing ? ed.visited : venue.visited) ? "#1A5C3A" : "#D8D8D0"}`,
+        background: (isEditing ? ed.visited : venue.visited) ? "#EDFAF3" : "transparent"
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: isEditing ? ed.visited : venue.visited,
+      onChange: e => isEditing && setEd({
+        ...ed,
+        visited: e.target.checked
+      }),
+      disabled: !isEditing,
+      style: {
+        accentColor: "#1A5C3A",
+        width: 13,
+        height: 13
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 600,
+        color: (isEditing ? ed.visited : venue.visited) ? "#1A5C3A" : "#6B6B65"
+      }
+    }, "Visited")), venue.privateRoom && /*#__PURE__*/React.createElement(Tag, {
+      color: "#2A7A5A"
+    }, "Private Room"), venue.av && /*#__PURE__*/React.createElement(Tag, {
+      color: "#4A6FA5"
+    }, "AV"), venue.dietary && /*#__PURE__*/React.createElement(Tag, {
+      color: "#6B4FA5"
+    }, "Dietary")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 16
+      }
+    }, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Website"), isEditing ? /*#__PURE__*/React.createElement("input", {
+      value: ed.website || "",
+      onChange: e => setEd({
+        ...ed,
+        website: e.target.value
+      }),
+      placeholder: "https://...",
+      style: {
+        ...inp,
+        marginTop: 4
+      }
+    }) : /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 4,
+        display: "flex",
+        alignItems: "center",
+        gap: 10
+      }
+    }, venue.website ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("a", {
+      href: venue.website,
+      target: "_blank",
+      rel: "noopener noreferrer",
+      style: {
+        fontSize: 13,
+        color: "#4A6FA5",
+        textDecoration: "none",
+        flex: 1,
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap"
+      },
+      onMouseEnter: e => e.currentTarget.style.textDecoration = "underline",
+      onMouseLeave: e => e.currentTarget.style.textDecoration = "none"
+    }, "\xC3\xB0\xC2\x9F\xC2\x94\xC2\x97 ", venue.website), /*#__PURE__*/React.createElement("a", {
+      href: venue.website,
+      target: "_blank",
+      rel: "noopener noreferrer",
+      style: {
+        ...btnP,
+        padding: "6px 14px",
+        fontSize: 11,
+        textDecoration: "none",
+        whiteSpace: "nowrap",
+        flexShrink: 0
+      }
+    }, "Visit Site \xC3\xA2\xC2\x86\xC2\x97")) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13,
+        color: "#A0A09A"
+      }
+    }, "\xC3\xA2\xC2\x80\xC2\x94"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 16,
+        marginBottom: 20
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Price / Head"), isEditing ? /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      value: ed.pricePerHead,
+      onChange: e => setEd({
+        ...ed,
+        pricePerHead: +e.target.value
+      }),
+      style: {
+        ...inp,
+        marginTop: 4
+      }
+    }) : /*#__PURE__*/React.createElement("p", {
+      style: {
+        margin: "4px 0 0",
+        fontSize: 22,
+        fontWeight: 700,
+        color: "#0A0A0A",
+        fontFamily: "'Playfair Display',serif"
+      }
+    }, "$", venue.pricePerHead)), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Exclusivity"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 6
+      }
+    }, /*#__PURE__*/React.createElement(Stars, {
+      rating: isEditing ? ed.exclusivity : venue.exclusivity,
+      interactive: isEditing,
+      onRate: r => setEd({
+        ...ed,
+        exclusivity: r
+      }),
+      size: 18
+    }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Your Rating"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginTop: 6
+      }
+    }, /*#__PURE__*/React.createElement(Stars, {
+      rating: isEditing ? ed.rating : venue.rating,
+      interactive: isEditing,
+      onRate: r => setEd({
+        ...ed,
+        rating: r
+      }),
+      size: 18
+    }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Last Used"), isEditing ? /*#__PURE__*/React.createElement("input", {
+      type: "date",
+      value: ed.lastUsed,
+      onChange: e => setEd({
+        ...ed,
+        lastUsed: e.target.value
+      }),
+      style: {
+        ...inp,
+        marginTop: 4
+      }
+    }) : /*#__PURE__*/React.createElement("p", {
+      style: {
+        margin: "4px 0 0",
+        fontSize: 14,
+        color: "#3A3A35"
+      }
+    }, venue.lastUsed || "Ã¢ÂÂ"))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 16
+      }
+    }, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Event Sizes"), isEditing ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        marginTop: 6,
+        flexWrap: "wrap"
+      }
+    }, EVENT_SIZES.map(sz => /*#__PURE__*/React.createElement("label", {
+      key: sz,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 5,
+        fontSize: 13,
+        cursor: "pointer",
+        color: "#3A3A35"
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: ed.eventSizes.includes(sz),
+      onChange: e => setEd({
+        ...ed,
+        eventSizes: e.target.checked ? [...ed.eventSizes, sz] : ed.eventSizes.filter(s => s !== sz)
+      })
+    }), sz))) : /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 5,
+        marginTop: 6,
+        flexWrap: "wrap"
+      }
+    }, venue.eventSizes.length ? venue.eventSizes.map(s => /*#__PURE__*/React.createElement(Tag, {
+      key: s,
+      color: "#0A0A0A"
+    }, s)) : /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontSize: 13,
+        color: "#A0A09A"
+      }
+    }, "\xC3\xA2\xC2\x80\xC2\x94"))), isEditing && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 14,
+        marginBottom: 16,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement(Toggle, {
+      checked: ed.privateRoom,
+      onChange: v => setEd({
+        ...ed,
+        privateRoom: v
+      }),
+      label: "Private Room"
+    }), /*#__PURE__*/React.createElement(Toggle, {
+      checked: ed.av,
+      onChange: v => setEd({
+        ...ed,
+        av: v
+      }),
+      label: "AV Ready"
+    }), /*#__PURE__*/React.createElement(Toggle, {
+      checked: ed.dietary,
+      onChange: v => setEd({
+        ...ed,
+        dietary: v
+      }),
+      label: "Dietary Flex"
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 16
+      }
+    }, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Contact"), isEditing ? /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        marginTop: 4
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      value: ed.contact,
+      onChange: e => setEd({
+        ...ed,
+        contact: e.target.value
+      }),
+      placeholder: "Name",
+      style: {
+        ...inp,
+        width: "50%"
+      }
+    }), /*#__PURE__*/React.createElement("input", {
+      value: ed.phone,
+      onChange: e => setEd({
+        ...ed,
+        phone: e.target.value
+      }),
+      placeholder: "Phone",
+      style: {
+        ...inp,
+        width: "50%"
+      }
+    })) : /*#__PURE__*/React.createElement("p", {
+      style: {
+        margin: "4px 0 0",
+        fontSize: 13,
+        color: "#3A3A35"
+      }
+    }, venue.contact ? `${venue.contact}${venue.phone ? ` ÃÂ· ${venue.phone}` : ""}` : "" || "Ã¢ÂÂ")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        marginBottom: 20
+      }
+    }, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Notes"), isEditing ? /*#__PURE__*/React.createElement("textarea", {
+      value: ed.notes,
+      onChange: e => setEd({
+        ...ed,
+        notes: e.target.value
+      }),
+      rows: 4,
+      style: {
+        ...inp,
+        marginTop: 4,
+        resize: "vertical"
+      }
+    }) : /*#__PURE__*/React.createElement("p", {
+      style: {
+        margin: "4px 0 0",
+        fontSize: 13,
+        color: "#5A5348",
+        lineHeight: 1.6,
+        whiteSpace: "pre-line"
+      }
+    }, venue.notes || "Ã¢ÂÂ")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 8,
+        flexWrap: "wrap"
+      }
+    }, isEditing ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+      onClick: () => saveVenue(ed),
+      style: btnP
+    }, "Save"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setIsEditing(false),
+      style: btnS
+    }, "Cancel")) : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("button", {
+      onClick: () => setIsEditing(true),
+      style: btnP
+    }, "Edit"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        setAiVenueCtx(venue);
+        setAiModal("email");
+      },
+      style: btnS
+    }, "\xC3\xA2\xC2\x9C\xC2\x89 Email"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        setAiVenueCtx(venue);
+        setAiModal("menu");
+      },
+      style: btnS
+    }, "\xC3\xB0\xC2\x9F\xC2\x8D\xC2\xBD Menu"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => duplicateVenue(venue),
+      style: btnS
+    }, "\xC3\xA2\xC2\xA7\xC2\x89 Dupe"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        if (confirm("Delete this venue?")) deleteVenue(venue.id);
+      },
+      style: {
+        ...btnS,
+        color: "#C0392B",
+        borderColor: "#C0392B"
+      }
+    }, "Delete")))));
   };
 
-  // ââ AddForm ââ
+  // Ã¢ÂÂÃ¢ÂÂ AddForm Ã¢ÂÂÃ¢ÂÂ
   const AddForm = () => {
-    const [nv,setNv] = useState(emptyVenue());
-    return (
-      <div style={{position:"fixed",inset:0,background:"rgba(10,10,10,0.5)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}
-        onClick={e=>{if(e.target===e.currentTarget)setShowAddForm(false);}}>
-        <div style={{background:"#FDFCFA",borderRadius:16,width:560,maxHeight:"88vh",overflowY:"auto",padding:32,boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
-          <h2 style={{margin:"0 0 20px",fontFamily:"'Playfair Display',serif",color:"#0A0A0A",fontSize:22}}>Add New Venue</h2>
-          <div style={{display:"grid",gap:14}}>
-            <input value={nv.name} onChange={e=>setNv({...nv,name:e.target.value})} placeholder="Venue name" style={{...inp,fontSize:15}}/>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <input value={nv.city} onChange={e=>setNv({...nv,city:e.target.value,region:guessRegion(e.target.value)||nv.region})} placeholder="City" style={inp}/>
-              <select value={nv.region} onChange={e=>setNv({...nv,region:e.target.value})} style={sel}>
-                <option value="">Select Region</option>
-                {Object.keys(REGIONS).map(r=><option key={r}>{r}</option>)}
-              </select>
-            </div>
-            <input value={nv.website||""} onChange={e=>setNv({...nv,website:e.target.value})} placeholder="Website (https://...)" style={inp}/>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div><label style={{...lbl,display:"block",marginBottom:4}}>Price / Head ($)</label><input type="number" value={nv.pricePerHead||""} onChange={e=>setNv({...nv,pricePerHead:+e.target.value})} style={inp}/></div>
-              <div><label style={{...lbl,display:"block",marginBottom:4}}>Status</label><select value={nv.status} onChange={e=>setNv({...nv,status:e.target.value})} style={sel}>{STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
-            </div>
-            <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontSize:13,color:"#3A3A35",padding:"9px 12px",borderRadius:8,border:`1.5px solid ${nv.visited?"#1A5C3A":"#D8D8D0"}`,background:nv.visited?"#EDFAF3":"transparent"}}>
-              <input type="checkbox" checked={nv.visited} onChange={e=>setNv({...nv,visited:e.target.checked})} style={{accentColor:"#1A5C3A",width:13,height:13}}/>
-              <span style={{fontWeight:600,color:nv.visited?"#1A5C3A":"#6B6B65"}}>I've visited this venue</span>
-            </label>
-            <div><label style={{...lbl,display:"block",marginBottom:6}}>Event Sizes</label>
-              <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-                {EVENT_SIZES.map(sz=>(
-                  <label key={sz} style={{display:"flex",alignItems:"center",gap:5,fontSize:13,cursor:"pointer",color:"#3A3A35"}}>
-                    <input type="checkbox" checked={nv.eventSizes.includes(sz)} onChange={e=>setNv({...nv,eventSizes:e.target.checked?[...nv.eventSizes,sz]:nv.eventSizes.filter(s=>s!==sz)})}/>{sz}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div style={{display:"flex",gap:16,flexWrap:"wrap"}}>
-              <Toggle checked={nv.privateRoom} onChange={v=>setNv({...nv,privateRoom:v})} label="Private Room"/>
-              <Toggle checked={nv.av} onChange={v=>setNv({...nv,av:v})} label="AV Ready"/>
-              <Toggle checked={nv.dietary} onChange={v=>setNv({...nv,dietary:v})} label="Dietary Flex"/>
-            </div>
-            <div><label style={{...lbl,display:"block",marginBottom:4}}>Exclusivity</label><Stars rating={nv.exclusivity} interactive onRate={r=>setNv({...nv,exclusivity:r})} size={20}/></div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <input value={nv.contact} onChange={e=>setNv({...nv,contact:e.target.value})} placeholder="Contact name" style={inp}/>
-              <input value={nv.phone} onChange={e=>setNv({...nv,phone:e.target.value})} placeholder="Phone" style={inp}/>
-            </div>
-            <textarea value={nv.notes} onChange={e=>setNv({...nv,notes:e.target.value})} placeholder="Notes â booking tips, room details..." rows={3} style={{...inp,resize:"vertical"}}/>
-            <div style={{display:"flex",gap:10}}>
-              <button onClick={()=>{if(nv.name&&nv.city)addVenue(nv);}} style={{...btnP,opacity:nv.name&&nv.city?1:0.5}}>Add Venue</button>
-              <button onClick={()=>setShowAddForm(false)} style={btnS}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
+    const [nv, setNv] = useState(emptyVenue());
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "fixed",
+        inset: 0,
+        background: "rgba(10,10,10,0.5)",
+        zIndex: 200,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backdropFilter: "blur(4px)"
+      },
+      onClick: e => {
+        if (e.target === e.currentTarget) setShowAddForm(false);
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: "#FDFCFA",
+        borderRadius: 16,
+        width: 560,
+        maxHeight: "88vh",
+        overflowY: "auto",
+        padding: 32,
+        boxShadow: "0 20px 60px rgba(0,0,0,0.2)"
+      }
+    }, /*#__PURE__*/React.createElement("h2", {
+      style: {
+        margin: "0 0 20px",
+        fontFamily: "'Playfair Display',serif",
+        color: "#0A0A0A",
+        fontSize: 22
+      }
+    }, "Add New Venue"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gap: 14
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      value: nv.name,
+      onChange: e => setNv({
+        ...nv,
+        name: e.target.value
+      }),
+      placeholder: "Venue name",
+      style: {
+        ...inp,
+        fontSize: 15
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 12
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      value: nv.city,
+      onChange: e => setNv({
+        ...nv,
+        city: e.target.value,
+        region: guessRegion(e.target.value) || nv.region
+      }),
+      placeholder: "City",
+      style: inp
+    }), /*#__PURE__*/React.createElement("select", {
+      value: nv.region,
+      onChange: e => setNv({
+        ...nv,
+        region: e.target.value
+      }),
+      style: sel
+    }, /*#__PURE__*/React.createElement("option", {
+      value: ""
+    }, "Select Region"), Object.keys(REGIONS).map(r => /*#__PURE__*/React.createElement("option", {
+      key: r
+    }, r)))), /*#__PURE__*/React.createElement("input", {
+      value: nv.website || "",
+      onChange: e => setNv({
+        ...nv,
+        website: e.target.value
+      }),
+      placeholder: "Website (https://...)",
+      style: inp
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: {
+        ...lbl,
+        display: "block",
+        marginBottom: 4
+      }
+    }, "Price / Head ($)"), /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      value: nv.pricePerHead || "",
+      onChange: e => setNv({
+        ...nv,
+        pricePerHead: +e.target.value
+      }),
+      style: inp
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: {
+        ...lbl,
+        display: "block",
+        marginBottom: 4
+      }
+    }, "Status"), /*#__PURE__*/React.createElement("select", {
+      value: nv.status,
+      onChange: e => setNv({
+        ...nv,
+        status: e.target.value
+      }),
+      style: sel
+    }, STATUSES.map(s => /*#__PURE__*/React.createElement("option", {
+      key: s
+    }, s))))), /*#__PURE__*/React.createElement("label", {
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+        cursor: "pointer",
+        fontSize: 13,
+        color: "#3A3A35",
+        padding: "9px 12px",
+        borderRadius: 8,
+        border: `1.5px solid ${nv.visited ? "#1A5C3A" : "#D8D8D0"}`,
+        background: nv.visited ? "#EDFAF3" : "transparent"
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: nv.visited,
+      onChange: e => setNv({
+        ...nv,
+        visited: e.target.checked
+      }),
+      style: {
+        accentColor: "#1A5C3A",
+        width: 13,
+        height: 13
+      }
+    }), /*#__PURE__*/React.createElement("span", {
+      style: {
+        fontWeight: 600,
+        color: nv.visited ? "#1A5C3A" : "#6B6B65"
+      }
+    }, "I've visited this venue")), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: {
+        ...lbl,
+        display: "block",
+        marginBottom: 6
+      }
+    }, "Event Sizes"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 10,
+        flexWrap: "wrap"
+      }
+    }, EVENT_SIZES.map(sz => /*#__PURE__*/React.createElement("label", {
+      key: sz,
+      style: {
+        display: "flex",
+        alignItems: "center",
+        gap: 5,
+        fontSize: 13,
+        cursor: "pointer",
+        color: "#3A3A35"
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      type: "checkbox",
+      checked: nv.eventSizes.includes(sz),
+      onChange: e => setNv({
+        ...nv,
+        eventSizes: e.target.checked ? [...nv.eventSizes, sz] : nv.eventSizes.filter(s => s !== sz)
+      })
+    }), sz)))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 16,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement(Toggle, {
+      checked: nv.privateRoom,
+      onChange: v => setNv({
+        ...nv,
+        privateRoom: v
+      }),
+      label: "Private Room"
+    }), /*#__PURE__*/React.createElement(Toggle, {
+      checked: nv.av,
+      onChange: v => setNv({
+        ...nv,
+        av: v
+      }),
+      label: "AV Ready"
+    }), /*#__PURE__*/React.createElement(Toggle, {
+      checked: nv.dietary,
+      onChange: v => setNv({
+        ...nv,
+        dietary: v
+      }),
+      label: "Dietary Flex"
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: {
+        ...lbl,
+        display: "block",
+        marginBottom: 4
+      }
+    }, "Exclusivity"), /*#__PURE__*/React.createElement(Stars, {
+      rating: nv.exclusivity,
+      interactive: true,
+      onRate: r => setNv({
+        ...nv,
+        exclusivity: r
+      }),
+      size: 20
+    })), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 12
+      }
+    }, /*#__PURE__*/React.createElement("input", {
+      value: nv.contact,
+      onChange: e => setNv({
+        ...nv,
+        contact: e.target.value
+      }),
+      placeholder: "Contact name",
+      style: inp
+    }), /*#__PURE__*/React.createElement("input", {
+      value: nv.phone,
+      onChange: e => setNv({
+        ...nv,
+        phone: e.target.value
+      }),
+      placeholder: "Phone",
+      style: inp
+    })), /*#__PURE__*/React.createElement("textarea", {
+      value: nv.notes,
+      onChange: e => setNv({
+        ...nv,
+        notes: e.target.value
+      }),
+      placeholder: "Notes \xC3\xA2\xC2\x80\xC2\x94 booking tips, room details...",
+      rows: 3,
+      style: {
+        ...inp,
+        resize: "vertical"
+      }
+    }), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        if (nv.name && nv.city) addVenue(nv);
+      },
+      style: {
+        ...btnP,
+        opacity: nv.name && nv.city ? 1 : 0.5
+      }
+    }, "Add Venue"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setShowAddForm(false),
+      style: btnS
+    }, "Cancel")))));
   };
 
-  // ââ SettingsModal ââ
+  // Ã¢ÂÂÃ¢ÂÂ SettingsModal Ã¢ÂÂÃ¢ÂÂ
   const SettingsModal = () => {
-    const [tmp,setTmp] = useState(apiKey);
-    const [testRes,setTestRes] = useState("");
-    const [testing,setTesting] = useState(false);
-    const test=async()=>{
-      if(!tmp.trim()){setTestRes("â No key entered");return;}
-      setTesting(true);setTestRes("Testing...");
-      try{const r=await fetch("/api/api-proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({apiKey:tmp.trim(),model:"claude-sonnet-4-20250514",max_tokens:50,messages:[{role:"user",content:"Say hi"}]})});setTestRes(r.ok?"â Key is valid!":"â Error "+r.status);}
-      catch(e){setTestRes("â "+e.message);}finally{setTesting(false);}
+    const [tmp, setTmp] = useState(apiKey);
+    const [testRes, setTestRes] = useState("");
+    const [testing, setTesting] = useState(false);
+    const test = async () => {
+      if (!tmp.trim()) {
+        setTestRes("Ã¢ÂÂ No key entered");
+        return;
+      }
+      setTesting(true);
+      setTestRes("Testing...");
+      try {
+        const r = await fetch("/api/api-proxy", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            apiKey: tmp.trim(),
+            model: "claude-sonnet-4-20250514",
+            max_tokens: 50,
+            messages: [{
+              role: "user",
+              content: "Say hi"
+            }]
+          })
+        });
+        setTestRes(r.ok ? "Ã¢ÂÂ Key is valid!" : "Ã¢ÂÂ Error " + r.status);
+      } catch (e) {
+        setTestRes("Ã¢ÂÂ " + e.message);
+      } finally {
+        setTesting(false);
+      }
     };
-    return (
-      <div style={{position:"fixed",inset:0,background:"rgba(10,10,10,0.5)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}
-        onClick={e=>{if(e.target===e.currentTarget)setShowSettings(false);}}>
-        <div style={{background:"#FDFCFA",borderRadius:16,width:500,padding:32,boxShadow:"0 20px 60px rgba(0,0,0,0.15)"}}>
-          <h2 style={{margin:"0 0 6px",fontFamily:"'Playfair Display',serif",color:"#0A0A0A",fontSize:20}}>Settings</h2>
-          <p style={{margin:"0 0 20px",fontSize:13,color:"#6B6B65",lineHeight:1.5}}>Get an API key from <a href="https://console.anthropic.com/" target="_blank" style={{color:"#0A0A0A",fontWeight:600}}>console.anthropic.com</a> to enable Discover and AI features.</p>
-          <label style={{...lbl,display:"block",marginBottom:4}}>Anthropic API Key</label>
-          <input type="password" value={tmp} onChange={e=>setTmp(e.target.value)} placeholder="sk-ant-..." style={{...inp,padding:"11px 14px",marginBottom:4}}/>
-          <p style={{fontSize:11,color:"#A0A09A",margin:"0 0 14px"}}>Stored locally in this browser only.</p>
-          {testRes&&<div style={{padding:10,borderRadius:8,marginBottom:14,fontSize:13,background:testRes.startsWith("â")?"#EDFAF3":testRes.startsWith("â")?"#FFF5F5":"#FFFAEE",color:testRes.startsWith("â")?"#1A5C3A":testRes.startsWith("â")?"#8B2222":"#6B5500",border:`1px solid ${testRes.startsWith("â")?"#B7E4C7":testRes.startsWith("â")?"#E8C4C4":"#E8D9A8"}`}}>{testRes}</div>}
-          <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-            <button onClick={()=>{const t=tmp.trim();setApiKey(t);try{localStorage.setItem(API_KEY_STORAGE,t)}catch(e){}setShowSettings(false);}} style={btnP}>Save Key</button>
-            <button onClick={test} disabled={testing} style={{...btnS,opacity:testing?0.6:1}}>{testing?"Testing...":"Test Key"}</button>
-            <button onClick={()=>setShowSettings(false)} style={btnS}>Cancel</button>
-            {apiKey&&<button onClick={()=>{setApiKey("");setTmp("");try{localStorage.removeItem(API_KEY_STORAGE)}catch(e){}}} style={{...btnS,color:"#C0392B",borderColor:"#C0392B",marginLeft:"auto"}}>Remove</button>}
-          </div>
-        </div>
-      </div>
-    );
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "fixed",
+        inset: 0,
+        background: "rgba(10,10,10,0.5)",
+        zIndex: 300,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backdropFilter: "blur(4px)"
+      },
+      onClick: e => {
+        if (e.target === e.currentTarget) setShowSettings(false);
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: "#FDFCFA",
+        borderRadius: 16,
+        width: 500,
+        padding: 32,
+        boxShadow: "0 20px 60px rgba(0,0,0,0.15)"
+      }
+    }, /*#__PURE__*/React.createElement("h2", {
+      style: {
+        margin: "0 0 6px",
+        fontFamily: "'Playfair Display',serif",
+        color: "#0A0A0A",
+        fontSize: 20
+      }
+    }, "Settings"), /*#__PURE__*/React.createElement("p", {
+      style: {
+        margin: "0 0 20px",
+        fontSize: 13,
+        color: "#6B6B65",
+        lineHeight: 1.5
+      }
+    }, "Get an API key from ", /*#__PURE__*/React.createElement("a", {
+      href: "https://console.anthropic.com/",
+      target: "_blank",
+      style: {
+        color: "#0A0A0A",
+        fontWeight: 600
+      }
+    }, "console.anthropic.com"), " to enable Discover and AI features."), /*#__PURE__*/React.createElement("label", {
+      style: {
+        ...lbl,
+        display: "block",
+        marginBottom: 4
+      }
+    }, "Anthropic API Key"), /*#__PURE__*/React.createElement("input", {
+      type: "password",
+      value: tmp,
+      onChange: e => setTmp(e.target.value),
+      placeholder: "sk-ant-...",
+      style: {
+        ...inp,
+        padding: "11px 14px",
+        marginBottom: 4
+      }
+    }), /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 11,
+        color: "#A0A09A",
+        margin: "0 0 14px"
+      }
+    }, "Stored locally in this browser only."), testRes && /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: 10,
+        borderRadius: 8,
+        marginBottom: 14,
+        fontSize: 13,
+        background: testRes.startsWith("Ã¢ÂÂ") ? "#EDFAF3" : testRes.startsWith("Ã¢ÂÂ") ? "#FFF5F5" : "#FFFAEE",
+        color: testRes.startsWith("Ã¢ÂÂ") ? "#1A5C3A" : testRes.startsWith("Ã¢ÂÂ") ? "#8B2222" : "#6B5500",
+        border: `1px solid ${testRes.startsWith("Ã¢ÂÂ") ? "#B7E4C7" : testRes.startsWith("Ã¢ÂÂ") ? "#E8C4C4" : "#E8D9A8"}`
+      }
+    }, testRes), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 10,
+        flexWrap: "wrap"
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        const t = tmp.trim();
+        setApiKey(t);
+        try {
+          localStorage.setItem(API_KEY_STORAGE, t);
+        } catch (e) {}
+        setShowSettings(false);
+      },
+      style: btnP
+    }, "Save Key"), /*#__PURE__*/React.createElement("button", {
+      onClick: test,
+      disabled: testing,
+      style: {
+        ...btnS,
+        opacity: testing ? 0.6 : 1
+      }
+    }, testing ? "Testing..." : "Test Key"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setShowSettings(false),
+      style: btnS
+    }, "Cancel"), apiKey && /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        setApiKey("");
+        setTmp("");
+        try {
+          localStorage.removeItem(API_KEY_STORAGE);
+        } catch (e) {}
+      },
+      style: {
+        ...btnS,
+        color: "#C0392B",
+        borderColor: "#C0392B",
+        marginLeft: "auto"
+      }
+    }, "Remove"))));
   };
 
-  // ââ AiModal ââ
+  // Ã¢ÂÂÃ¢ÂÂ AiModal Ã¢ÂÂÃ¢ÂÂ
   const AiModal = () => {
-    if(!aiModal) return null;
-    const titles={email:"Draft Outreach Email",brief:"Event Brief Generator",compare:"Venue Comparison",match:"Smart Venue Matching",menu:"Dietary & Menu Planner"};
-    return (
-      <div style={{position:"fixed",inset:0,background:"rgba(10,10,10,0.5)",zIndex:250,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}
-        onClick={e=>{if(e.target===e.currentTarget){setAiModal(null);setAiResult("");}}}>
-        <div style={{background:"#FDFCFA",borderRadius:16,width:700,maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
-          <div style={{padding:"20px 28px",borderBottom:"1px solid #E0E0D8",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <h2 style={{margin:0,fontSize:19,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>{titles[aiModal]}</h2>
-            <button onClick={()=>{setAiModal(null);setAiResult("");}} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#A0A09A"}}>â</button>
-          </div>
-          <div style={{padding:"20px 28px",overflowY:"auto",flex:1}}>
-            {aiModal==="email"&&!aiResult&&(
-              <div style={{display:"grid",gap:12}}>
-                <p style={{fontSize:13,color:"#5A5348",margin:0}}>For: <strong>{aiVenueCtx?.name}</strong></p>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  <div><label style={lbl}>Event Date</label><input type="date" value={emailForm.date} onChange={e=>setEmailForm({...emailForm,date:e.target.value})} style={{...inp,marginTop:4}}/></div>
-                  <div><label style={lbl}>Guest Count</label><input type="number" value={emailForm.guestCount} onChange={e=>setEmailForm({...emailForm,guestCount:+e.target.value})} style={{...inp,marginTop:4}}/></div>
-                </div>
-                <div><label style={lbl}>Event Type</label>
-                  <select value={emailForm.eventType} onChange={e=>setEmailForm({...emailForm,eventType:e.target.value})} style={{...sel,marginTop:4,width:"100%"}}>
-                    {["Executive dinner","Client appreciation dinner","Team celebration","Product launch","Networking reception","CISO/CIO roundtable","Prospect dinner"].map(o=><option key={o}>{o}</option>)}
-                  </select></div>
-                <div><label style={lbl}>Additional Notes</label><textarea value={emailForm.notes} onChange={e=>setEmailForm({...emailForm,notes:e.target.value})} rows={2} placeholder="Any specific requests..." style={{...inp,marginTop:4}}/></div>
-                <button onClick={()=>generateEmail(aiVenueCtx)} disabled={aiLoading} style={{...btnP,opacity:aiLoading?0.5:1}}>Generate 3 Email Versions</button>
-              </div>
-            )}
-            {aiModal==="brief"&&!aiResult&&(
-              <div style={{display:"grid",gap:12}}>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
-                  <div><label style={lbl}>Account Name</label><input value={briefForm.accountName} onChange={e=>setBriefForm({...briefForm,accountName:e.target.value})} placeholder="e.g. Stripe..." style={{...inp,marginTop:4}}/></div>
-                  <div><label style={lbl}>City</label><input value={briefForm.city} onChange={e=>setBriefForm({...briefForm,city:e.target.value})} placeholder="e.g. Austin" style={{...inp,marginTop:4}}/></div>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10}}>
-                  <div><label style={lbl}>Guests</label><input type="number" value={briefForm.guestCount} onChange={e=>setBriefForm({...briefForm,guestCount:+e.target.value})} style={{...inp,marginTop:4}}/></div>
-                  <div><label style={lbl}>Budget ($)</label><input type="number" value={briefForm.budget} onChange={e=>setBriefForm({...briefForm,budget:+e.target.value})} style={{...inp,marginTop:4}}/></div>
-                  <div><label style={lbl}>Event Type</label><select value={briefForm.eventType} onChange={e=>setBriefForm({...briefForm,eventType:e.target.value})} style={{...sel,marginTop:4,width:"100%"}}>
-                    {["Client appreciation dinner","Executive roundtable","Product launch","Networking","CISO dinner","Prospect dinner"].map(o=><option key={o}>{o}</option>)}
-                  </select></div>
-                </div>
-                <div><label style={lbl}>Goals & Context</label><textarea value={briefForm.goals} onChange={e=>setBriefForm({...briefForm,goals:e.target.value})} rows={2} placeholder="What do you want to accomplish?" style={{...inp,marginTop:4}}/></div>
-                <button onClick={generateBrief} disabled={aiLoading||!briefForm.accountName||!briefForm.city} style={{...btnP,opacity:aiLoading||!briefForm.accountName||!briefForm.city?0.5:1}}>Generate Event Brief</button>
-              </div>
-            )}
-            {aiModal==="match"&&!aiResult&&(
-              <div style={{display:"grid",gap:12}}>
-                <p style={{fontSize:13,color:"#5A5348",margin:0}}>Describe your event and AI recommends from your {venues.length} tracked venues.</p>
-                <div><label style={lbl}>Describe Your Event</label><textarea value={matchForm.description} onChange={e=>setMatchForm({...matchForm,description:e.target.value})} rows={4} placeholder="e.g. CISO dinner in Chicago, 15 guests, $200/head, private room required..." style={{...inp,marginTop:4}}/></div>
-                <button onClick={generateMatch} disabled={aiLoading||!matchForm.description} style={{...btnP,opacity:aiLoading||!matchForm.description?0.5:1}}>Find Best Matches</button>
-              </div>
-            )}
-            {aiModal==="compare"&&!aiResult&&(
-              <div>
-                <p style={{fontSize:13,color:"#5A5348",margin:"0 0 10px"}}>Comparing {compareIds.size} venues:</p>
-                <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
-                  {venues.filter(v=>compareIds.has(v.id)).map(v=><Tag key={v.id} filled color="#0A0A0A">{v.name} â {v.city}</Tag>)}
-                </div>
-                <button onClick={generateComparison} disabled={aiLoading} style={{...btnP,opacity:aiLoading?0.5:1}}>Generate Comparison Report</button>
-              </div>
-            )}
-            {aiModal==="menu"&&!aiResult&&(
-              <div style={{display:"grid",gap:12}}>
-                <p style={{fontSize:13,color:"#5A5348",margin:0}}>Menu planning for <strong>{aiVenueCtx?.name}</strong> (${aiVenueCtx?.pricePerHead}/head)</p>
-                <div><label style={lbl}>Guest Count</label><input type="number" value={menuForm.guestCount} onChange={e=>setMenuForm({...menuForm,guestCount:+e.target.value})} style={{...inp,marginTop:4,maxWidth:130}}/></div>
-                <div><label style={lbl}>Dietary Needs</label><textarea value={menuForm.dietaryNeeds} onChange={e=>setMenuForm({...menuForm,dietaryNeeds:e.target.value})} rows={2} placeholder="e.g. 3 vegetarian, 1 gluten-free..." style={{...inp,marginTop:4}}/></div>
-                <div><label style={lbl}>Preferences</label><textarea value={menuForm.preferences} onChange={e=>setMenuForm({...menuForm,preferences:e.target.value})} rows={2} placeholder="e.g. Japanese preferred, no raw fish..." style={{...inp,marginTop:4}}/></div>
-                <button onClick={()=>generateMenu(aiVenueCtx)} disabled={aiLoading} style={{...btnP,opacity:aiLoading?0.5:1}}>Generate Menu Plan</button>
-              </div>
-            )}
-            {aiLoading&&<div style={{padding:"32px 0",textAlign:"center"}}><Spinner/><p style={{color:"#6B6B65",fontSize:14,marginTop:12}}>AI is working on it...</p></div>}
-            {aiResult&&(
-              <div>
-                <div style={{background:"#fff",border:"1px solid #E0E0D8",borderRadius:10,padding:20,fontSize:13,color:"#3A3A35",lineHeight:1.7,whiteSpace:"pre-wrap",maxHeight:460,overflowY:"auto"}}>{aiResult}</div>
-                <div style={{display:"flex",gap:10,marginTop:14}}>
-                  <button onClick={()=>navigator.clipboard.writeText(aiResult)} style={btnP}>ð Copy</button>
-                  <button onClick={()=>setAiResult("")} style={btnS}>â Back</button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
+    if (!aiModal) return null;
+    const titles = {
+      email: "Draft Outreach Email",
+      brief: "Event Brief Generator",
+      compare: "Venue Comparison",
+      match: "Smart Venue Matching",
+      menu: "Dietary & Menu Planner"
+    };
+    return /*#__PURE__*/React.createElement("div", {
+      style: {
+        position: "fixed",
+        inset: 0,
+        background: "rgba(10,10,10,0.5)",
+        zIndex: 250,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backdropFilter: "blur(4px)"
+      },
+      onClick: e => {
+        if (e.target === e.currentTarget) {
+          setAiModal(null);
+          setAiResult("");
+        }
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: "#FDFCFA",
+        borderRadius: 16,
+        width: 700,
+        maxHeight: "90vh",
+        display: "flex",
+        flexDirection: "column",
+        boxShadow: "0 20px 60px rgba(0,0,0,0.2)"
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "20px 28px",
+        borderBottom: "1px solid #E0E0D8",
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center"
+      }
+    }, /*#__PURE__*/React.createElement("h2", {
+      style: {
+        margin: 0,
+        fontSize: 19,
+        fontFamily: "'Playfair Display',serif",
+        color: "#0A0A0A"
+      }
+    }, titles[aiModal]), /*#__PURE__*/React.createElement("button", {
+      onClick: () => {
+        setAiModal(null);
+        setAiResult("");
+      },
+      style: {
+        background: "none",
+        border: "none",
+        fontSize: 20,
+        cursor: "pointer",
+        color: "#A0A09A"
+      }
+    }, "\xC3\xA2\xC2\x9C\xC2\x95")), /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "20px 28px",
+        overflowY: "auto",
+        flex: 1
+      }
+    }, aiModal === "email" && !aiResult && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gap: 12
+      }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 13,
+        color: "#5A5348",
+        margin: 0
+      }
+    }, "For: ", /*#__PURE__*/React.createElement("strong", null, aiVenueCtx?.name)), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Event Date"), /*#__PURE__*/React.createElement("input", {
+      type: "date",
+      value: emailForm.date,
+      onChange: e => setEmailForm({
+        ...emailForm,
+        date: e.target.value
+      }),
+      style: {
+        ...inp,
+        marginTop: 4
+      }
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Guest Count"), /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      value: emailForm.guestCount,
+      onChange: e => setEmailForm({
+        ...emailForm,
+        guestCount: +e.target.value
+      }),
+      style: {
+        ...inp,
+        marginTop: 4
+      }
+    }))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Event Type"), /*#__PURE__*/React.createElement("select", {
+      value: emailForm.eventType,
+      onChange: e => setEmailForm({
+        ...emailForm,
+        eventType: e.target.value
+      }),
+      style: {
+        ...sel,
+        marginTop: 4,
+        width: "100%"
+      }
+    }, ["Executive dinner", "Client appreciation dinner", "Team celebration", "Product launch", "Networking reception", "CISO/CIO roundtable", "Prospect dinner"].map(o => /*#__PURE__*/React.createElement("option", {
+      key: o
+    }, o)))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Additional Notes"), /*#__PURE__*/React.createElement("textarea", {
+      value: emailForm.notes,
+      onChange: e => setEmailForm({
+        ...emailForm,
+        notes: e.target.value
+      }),
+      rows: 2,
+      placeholder: "Any specific requests...",
+      style: {
+        ...inp,
+        marginTop: 4
+      }
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: () => generateEmail(aiVenueCtx),
+      disabled: aiLoading,
+      style: {
+        ...btnP,
+        opacity: aiLoading ? 0.5 : 1
+      }
+    }, "Generate 3 Email Versions")), aiModal === "brief" && !aiResult && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gap: 12
+      }
+    }, /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr",
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Account Name"), /*#__PURE__*/React.createElement("input", {
+      value: briefForm.accountName,
+      onChange: e => setBriefForm({
+        ...briefForm,
+        accountName: e.target.value
+      }),
+      placeholder: "e.g. Stripe...",
+      style: {
+        ...inp,
+        marginTop: 4
+      }
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "City"), /*#__PURE__*/React.createElement("input", {
+      value: briefForm.city,
+      onChange: e => setBriefForm({
+        ...briefForm,
+        city: e.target.value
+      }),
+      placeholder: "e.g. Austin",
+      style: {
+        ...inp,
+        marginTop: 4
+      }
+    }))), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gridTemplateColumns: "1fr 1fr 1fr",
+        gap: 10
+      }
+    }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Guests"), /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      value: briefForm.guestCount,
+      onChange: e => setBriefForm({
+        ...briefForm,
+        guestCount: +e.target.value
+      }),
+      style: {
+        ...inp,
+        marginTop: 4
+      }
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Budget ($)"), /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      value: briefForm.budget,
+      onChange: e => setBriefForm({
+        ...briefForm,
+        budget: +e.target.value
+      }),
+      style: {
+        ...inp,
+        marginTop: 4
+      }
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Event Type"), /*#__PURE__*/React.createElement("select", {
+      value: briefForm.eventType,
+      onChange: e => setBriefForm({
+        ...briefForm,
+        eventType: e.target.value
+      }),
+      style: {
+        ...sel,
+        marginTop: 4,
+        width: "100%"
+      }
+    }, ["Client appreciation dinner", "Executive roundtable", "Product launch", "Networking", "CISO dinner", "Prospect dinner"].map(o => /*#__PURE__*/React.createElement("option", {
+      key: o
+    }, o))))), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Goals & Context"), /*#__PURE__*/React.createElement("textarea", {
+      value: briefForm.goals,
+      onChange: e => setBriefForm({
+        ...briefForm,
+        goals: e.target.value
+      }),
+      rows: 2,
+      placeholder: "What do you want to accomplish?",
+      style: {
+        ...inp,
+        marginTop: 4
+      }
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: generateBrief,
+      disabled: aiLoading || !briefForm.accountName || !briefForm.city,
+      style: {
+        ...btnP,
+        opacity: aiLoading || !briefForm.accountName || !briefForm.city ? 0.5 : 1
+      }
+    }, "Generate Event Brief")), aiModal === "match" && !aiResult && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gap: 12
+      }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 13,
+        color: "#5A5348",
+        margin: 0
+      }
+    }, "Describe your event and AI recommends from your ", venues.length, " tracked venues."), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Describe Your Event"), /*#__PURE__*/React.createElement("textarea", {
+      value: matchForm.description,
+      onChange: e => setMatchForm({
+        ...matchForm,
+        description: e.target.value
+      }),
+      rows: 4,
+      placeholder: "e.g. CISO dinner in Chicago, 15 guests, $200/head, private room required...",
+      style: {
+        ...inp,
+        marginTop: 4
+      }
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: generateMatch,
+      disabled: aiLoading || !matchForm.description,
+      style: {
+        ...btnP,
+        opacity: aiLoading || !matchForm.description ? 0.5 : 1
+      }
+    }, "Find Best Matches")), aiModal === "compare" && !aiResult && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 13,
+        color: "#5A5348",
+        margin: "0 0 10px"
+      }
+    }, "Comparing ", compareIds.size, " venues:"), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 6,
+        flexWrap: "wrap",
+        marginBottom: 14
+      }
+    }, venues.filter(v => compareIds.has(v.id)).map(v => /*#__PURE__*/React.createElement(Tag, {
+      key: v.id,
+      filled: true,
+      color: "#0A0A0A"
+    }, v.name, " \xC3\xA2\xC2\x80\xC2\x94 ", v.city))), /*#__PURE__*/React.createElement("button", {
+      onClick: generateComparison,
+      disabled: aiLoading,
+      style: {
+        ...btnP,
+        opacity: aiLoading ? 0.5 : 1
+      }
+    }, "Generate Comparison Report")), aiModal === "menu" && !aiResult && /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "grid",
+        gap: 12
+      }
+    }, /*#__PURE__*/React.createElement("p", {
+      style: {
+        fontSize: 13,
+        color: "#5A5348",
+        margin: 0
+      }
+    }, "Menu planning for ", /*#__PURE__*/React.createElement("strong", null, aiVenueCtx?.name), " ($", aiVenueCtx?.pricePerHead, "/head)"), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Guest Count"), /*#__PURE__*/React.createElement("input", {
+      type: "number",
+      value: menuForm.guestCount,
+      onChange: e => setMenuForm({
+        ...menuForm,
+        guestCount: +e.target.value
+      }),
+      style: {
+        ...inp,
+        marginTop: 4,
+        maxWidth: 130
+      }
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Dietary Needs"), /*#__PURE__*/React.createElement("textarea", {
+      value: menuForm.dietaryNeeds,
+      onChange: e => setMenuForm({
+        ...menuForm,
+        dietaryNeeds: e.target.value
+      }),
+      rows: 2,
+      placeholder: "e.g. 3 vegetarian, 1 gluten-free...",
+      style: {
+        ...inp,
+        marginTop: 4
+      }
+    })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("label", {
+      style: lbl
+    }, "Preferences"), /*#__PURE__*/React.createElement("textarea", {
+      value: menuForm.preferences,
+      onChange: e => setMenuForm({
+        ...menuForm,
+        preferences: e.target.value
+      }),
+      rows: 2,
+      placeholder: "e.g. Japanese preferred, no raw fish...",
+      style: {
+        ...inp,
+        marginTop: 4
+      }
+    })), /*#__PURE__*/React.createElement("button", {
+      onClick: () => generateMenu(aiVenueCtx),
+      disabled: aiLoading,
+      style: {
+        ...btnP,
+        opacity: aiLoading ? 0.5 : 1
+      }
+    }, "Generate Menu Plan")), aiLoading && /*#__PURE__*/React.createElement("div", {
+      style: {
+        padding: "32px 0",
+        textAlign: "center"
+      }
+    }, /*#__PURE__*/React.createElement(Spinner, null), /*#__PURE__*/React.createElement("p", {
+      style: {
+        color: "#6B6B65",
+        fontSize: 14,
+        marginTop: 12
+      }
+    }, "AI is working on it...")), aiResult && /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+      style: {
+        background: "#fff",
+        border: "1px solid #E0E0D8",
+        borderRadius: 10,
+        padding: 20,
+        fontSize: 13,
+        color: "#3A3A35",
+        lineHeight: 1.7,
+        whiteSpace: "pre-wrap",
+        maxHeight: 460,
+        overflowY: "auto"
+      }
+    }, aiResult), /*#__PURE__*/React.createElement("div", {
+      style: {
+        display: "flex",
+        gap: 10,
+        marginTop: 14
+      }
+    }, /*#__PURE__*/React.createElement("button", {
+      onClick: () => navigator.clipboard.writeText(aiResult),
+      style: btnP
+    }, "\xC3\xB0\xC2\x9F\xC2\x93\xC2\x8B Copy"), /*#__PURE__*/React.createElement("button", {
+      onClick: () => setAiResult(""),
+      style: btnS
+    }, "\xC3\xA2\xC2\x86\xC2\x90 Back"))))));
   };
-
   const leftShift = showDiscover ? 560 : 0;
   const rightShift = selectedVenue ? 520 : 0;
-
-  return (
-    <div style={{minHeight:"100vh",background:"#F4F4F0"}}>
-      {/* Header */}
-      <div style={{background:"#0A0A0A",padding:"24px 40px 0",color:"#FFFFFF"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:18}}>
-          <div>
-            <p style={{margin:"0 0 3px",fontSize:11,textTransform:"uppercase",letterSpacing:"0.15em",color:"#EBF245",fontWeight:700}}>Field Marketing</p>
-            <h1 style={{margin:0,fontSize:30,fontFamily:"'Playfair Display',serif",fontWeight:600}}>Venue Tracker</h1>
-          </div>
-          <div style={{display:"flex",gap:24,alignItems:"flex-end",marginBottom:2,flexWrap:"wrap"}}>
-            {[{l:"Total",v:stats.total},{l:"Avg $/Head",v:`$${stats.avgPrice}`},{l:"Regions",v:stats.regions},{l:"Visited",v:stats.visited},{l:"Used",v:stats.used},{l:"Booked",v:stats.booked}].map(s=>(
-              <div key={s.l} style={{textAlign:"center"}}>
-                <p style={{margin:0,fontSize:19,fontWeight:700,fontFamily:"'Playfair Display',serif",color:"#EBF245"}}>{s.v}</p>
-                <p style={{margin:"1px 0 0",fontSize:10,textTransform:"uppercase",letterSpacing:"0.1em",color:"#888884"}}>{s.l}</p>
-              </div>
-            ))}
-            <button onClick={()=>setShowSettings(true)} style={{background:"none",border:"1px solid #333",borderRadius:8,color:"#888884",padding:"7px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>â Settings</button>
-            <button onClick={exportCSV} style={{background:"none",border:"1px solid #333",borderRadius:8,color:"#888884",padding:"7px 12px",fontSize:12,cursor:"pointer",fontWeight:600}}>â CSV</button>
-          </div>
-        </div>
-        <div style={{display:"flex"}}>
-          {[{key:"tracker",label:"My Venues",icon:"â»"},{key:"aitools",label:"AI Tools",icon:"â¦"}].map(tab=>(
-            <button key={tab.key} onClick={()=>setMode(tab.key)}
-              style={{padding:"11px 26px",border:"none",borderRadius:"8px 8px 0 0",fontSize:13,fontWeight:700,cursor:"pointer",
-                background:mode===tab.key?"#F4F4F0":"transparent",color:mode===tab.key?"#0A0A0A":"#888884"}}>
-              {tab.icon} {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* AI Tools tab */}
-      {mode==="aitools"&&(
-        <div style={{padding:"0 40px 40px"}}>
-          <div style={{background:"#FFFFFF",borderRadius:"0 12px 12px 12px",padding:"28px 32px",border:"1px solid #E0E0D8"}}>
-            <h2 style={{margin:"0 0 4px",fontSize:19,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>AI-Powered Event Tools</h2>
-            <p style={{margin:"0 0 24px",fontSize:13,color:"#6B6B65"}}>Plan events, match venues, generate briefs â powered by your tracker data.</p>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(260px,1fr))",gap:16}}>
-              {[
-                {icon:"ð¯",title:"Smart Venue Matching",desc:`Describe your event and AI picks the best from your ${venues.length} tracked venues.`,action:()=>setAiModal("match"),active:true},
-                {icon:"ð",title:"Event Brief Generator",desc:"Full event plan with venue recs, menu, budget, and run of show.",action:()=>setAiModal("brief"),active:true},
-                {icon:"âï¸",title:"Venue Comparison",desc:compareIds.size>=2?`${compareIds.size} venues selected â generate report.`:`Select 2-5 venues on My Venues tab. (${compareIds.size} selected)`,action:()=>{if(compareIds.size>=2)setAiModal("compare");},active:compareIds.size>=2},
-                {icon:"âï¸",title:"Draft Outreach Email",desc:"Open any venue and click 'â Email' to generate 3 booking email versions.",action:null,active:false},
-                {icon:"ð½ï¸",title:"Dietary & Menu Planner",desc:"Open any venue and click 'ð½ Menu' for custom menu suggestions.",action:null,active:false},
-              ].map(card=>(
-                <div key={card.title} onClick={card.action||undefined}
-                  style={{background:"#F4F4F0",borderRadius:10,padding:20,border:"1.5px solid #E0E0D8",transition:"all 0.2s",cursor:card.action?"pointer":"default",opacity:card.action?1:0.55}}
-                  onMouseEnter={e=>{if(card.action){e.currentTarget.style.borderColor="#0A0A0A";e.currentTarget.style.background="#EBF245";}}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor="#E0E0D8";e.currentTarget.style.background="#F4F4F0";}}>
-                  <p style={{fontSize:24,margin:"0 0 8px"}}>{card.icon}</p>
-                  <h3 style={{margin:"0 0 5px",fontSize:15,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>{card.title}</h3>
-                  <p style={{margin:0,fontSize:12,color:"#6B6B65",lineHeight:1.55}}>{card.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tracker tab */}
-      {mode==="tracker"&&(
-        <React.Fragment>
-          {/* Filter bar */}
-          <div style={{padding:"16px 40px",background:"#FFFFFF",borderBottom:"1px solid #E0E0D8",marginLeft:leftShift,marginRight:rightShift,transition:"margin 0.25s ease"}}>
-            <div style={{display:"flex",gap:8,alignItems:"center",flexWrap:"wrap"}}>
-              <div style={{position:"relative",flex:"0 0 210px"}}>
-                <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search venues or cities..." style={{...inp,paddingLeft:32}}/>
-                <span style={{position:"absolute",left:10,top:"50%",transform:"translateY(-50%)",color:"#A0A09A",fontSize:15}}>â</span>
-              </div>
-              <select value={filterRegion} onChange={e=>setFilterRegion(e.target.value)} style={sel}>
-                <option value="All">All Regions</option>
-                {Object.keys(REGIONS).map(r=><option key={r}>{r}</option>)}
-              </select>
-              <select value={filterSize} onChange={e=>setFilterSize(e.target.value)} style={sel}>
-                <option value="All">All Sizes</option>
-                {EVENT_SIZES.map(s=><option key={s}>{s}</option>)}
-              </select>
-              <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={sel}>
-                <option value="All">All Statuses</option>
-                {STATUSES.map(s=><option key={s}>{s}</option>)}
-              </select>
-              <div style={{display:"flex",border:"1.5px solid #D8D8D0",borderRadius:8,overflow:"hidden"}}>
-                {["All","Yes","No"].map(v=>(
-                  <button key={v} onClick={()=>setFilterVisited(v)}
-                    style={{padding:"6px 12px",border:"none",background:filterVisited===v?"#0A0A0A":"#FFFFFF",color:filterVisited===v?"#EBF245":"#6B6B65",fontSize:11,cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>
-                    {v==="All"?"All":v==="Yes"?"â Visited":"Not Visited"}
-                  </button>
-                ))}
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:5}}>
-                <span style={{fontSize:11,color:"#6B6B65",whiteSpace:"nowrap"}}>â¤ $</span>
-                <input type="range" min={50} max={300} value={budgetMax} onChange={e=>setBudgetMax(+e.target.value)} style={{width:80}}/>
-                <span style={{fontSize:12,fontWeight:700,color:"#0A0A0A",minWidth:32}}>{budgetMax}</span>
-              </div>
-            </div>
-            <div style={{display:"flex",gap:14,alignItems:"center",marginTop:10,flexWrap:"wrap"}}>
-              <Toggle checked={filterPrivate} onChange={setFilterPrivate} label="Private Room"/>
-              <Toggle checked={filterAV} onChange={setFilterAV} label="AV Ready"/>
-              <Toggle checked={filterDietary} onChange={setFilterDietary} label="Dietary Flex"/>
-              <div style={{display:"flex",alignItems:"center",gap:5}}>
-                <span style={{fontSize:11,color:"#6B6B65"}}>Min Exclusivity</span>
-                <Stars rating={filterExclusivity} interactive onRate={r=>setFilterExclusivity(r===filterExclusivity?0:r)} size={15}/>
-              </div>
-              <div style={{marginLeft:"auto",display:"flex",gap:7,alignItems:"center"}}>
-                <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{...sel,minWidth:110}}>
-                  <option value="name">Sort: Name</option><option value="price">Sort: Price</option>
-                  <option value="exclusivity">Sort: Exclusivity</option><option value="rating">Sort: Rating</option>
-                  <option value="city">Sort: City</option>
-                </select>
-                <div style={{display:"flex",border:"1.5px solid #D8D8D0",borderRadius:8,overflow:"hidden"}}>
-                  {["grid","table"].map(v=>(
-                    <button key={v} onClick={()=>setView(v)} style={{padding:"5px 12px",border:"none",background:view===v?"#0A0A0A":"#FFFFFF",color:view===v?"#EBF245":"#6B6B65",fontSize:12,cursor:"pointer",fontWeight:700}}>
-                      {v==="grid"?"â» Grid":"â° Table"}
-                    </button>
-                  ))}
-                </div>
-                <button onClick={()=>setShowDiscover(d=>!d)}
-                  style={{...btnS,padding:"7px 16px",fontSize:12,background:showDiscover?"#0A0A0A":"transparent",color:showDiscover?"#EBF245":"#0A0A0A"}}>
-                  {showDiscover?"â Close":"â Discover"}
-                </button>
-                <button onClick={()=>setShowAddForm(true)} style={btnP}>+ Add Venue</button>
-              </div>
-            </div>
-          </div>
-
-          {/* Grid / Table */}
-          <div style={{padding:"20px 40px 80px",marginLeft:leftShift,marginRight:rightShift,transition:"margin 0.25s ease"}}>
-            <p style={{margin:"0 0 12px",fontSize:12,color:"#6B6B65"}}>Showing {filtered.length} of {venues.length} venues</p>
-            {view==="grid"?(
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(290px,1fr))",gap:14}}>
-                {filtered.map(v=><VenueCard key={v.id} venue={v}/>)}
-              </div>
-            ):(
-              <div style={{background:"#FFFFFF",borderRadius:12,border:"1.5px solid #E0E0D8",overflow:"hidden"}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-                  <thead><tr style={{borderBottom:"2px solid #E0E0D8"}}>
-                    {["Venue","City","Region","$/Head","Website","Visited","Exclusivity","Status","Features","Rating"].map(h=>(
-                      <th key={h} style={{padding:"10px 12px",textAlign:"left",fontSize:10,textTransform:"uppercase",letterSpacing:"0.1em",color:"#6B6B65",fontWeight:700,background:"#F4F4F0"}}>{h}</th>
-                    ))}
-                  </tr></thead>
-                  <tbody>{filtered.map(v=><VenueRow key={v.id} venue={v}/>)}</tbody>
-                </table>
-              </div>
-            )}
-            {filtered.length===0&&(
-              <div style={{textAlign:"center",padding:"60px 20px",color:"#A0A09A"}}>
-                <p style={{fontSize:44,margin:"0 0 10px"}}>ð½</p>
-                <p style={{fontSize:16,fontFamily:"'Playfair Display',serif",color:"#3A3A35"}}>No venues match your filters</p>
-              </div>
-            )}
-          </div>
-        </React.Fragment>
-      )}
-
-      {/* Panels + Modals */}
-      {showDiscover&&mode==="tracker"&&(
-        <DiscoverPanel
-          venues={venues} discoverCity={discoverCity} setDiscoverCity={setDiscoverCity}
-          discoverType={discoverType} setDiscoverType={setDiscoverType}
-          searchMode={searchMode} setSearchMode={setSearchMode}
-          batchCities={batchCities} setBatchCities={setBatchCities}
-          isSearching={isSearching} batchProgress={batchProgress}
-          discoveredVenues={discoveredVenues} savedIds={savedIds}
-          searchError={searchError} apiKey={apiKey}
-          discoverVenues={discoverVenues} saveDiscovered={saveDiscovered}
-          setShowDiscover={setShowDiscover}
-        />
-      )}
-      {selectedVenue&&<DetailPanel key={selectedVenue.id} venue={selectedVenue}/>}
-      {showAddForm&&<AddForm/>}
-      {showSettings&&<SettingsModal/>}
-      <AiModal/>
-
-      {/* Compare bar */}
-      {compareIds.size>0&&mode==="tracker"&&(
-        <div style={{position:"fixed",bottom:0,left:leftShift,right:rightShift,background:"#0A0A0A",padding:"12px 40px",display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:90,boxShadow:"0 -4px 20px rgba(0,0,0,0.2)",transition:"left 0.25s,right 0.25s"}}>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <span style={{color:"#EBF245",fontSize:13,fontWeight:700}}>{compareIds.size} venue{compareIds.size>1?"s":""} selected</span>
-            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-              {venues.filter(v=>compareIds.has(v.id)).map(v=><span key={v.id} style={{background:"#1A1A1A",color:"#EBF245",padding:"2px 10px",borderRadius:6,fontSize:12,fontWeight:600}}>{v.name}</span>)}
-            </div>
-          </div>
-          <div style={{display:"flex",gap:8}}>
-            <button onClick={()=>{if(compareIds.size>=2){setMode("aitools");setAiModal("compare");}}} disabled={compareIds.size<2}
-              style={{...btnP,padding:"7px 18px",fontSize:12,background:compareIds.size>=2?"#EBF245":"#333",color:compareIds.size>=2?"#0A0A0A":"#6B6B65"}}>
-              âï¸ Compare{compareIds.size<2?` (need ${2-compareIds.size} more)`:""}
-            </button>
-            <button onClick={()=>setCompareIds(new Set())} style={{...btnS,padding:"7px 14px",fontSize:12,color:"#888884",borderColor:"#333"}}>Clear</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  return /*#__PURE__*/React.createElement("div", {
+    style: {
+      minHeight: "100vh",
+      background: "#F4F4F0"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#0A0A0A",
+      padding: "24px 40px 0",
+      color: "#FFFFFF"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-end",
+      marginBottom: 18
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: "0 0 3px",
+      fontSize: 11,
+      textTransform: "uppercase",
+      letterSpacing: "0.15em",
+      color: "#EBF245",
+      fontWeight: 700
+    }
+  }, "Field Marketing"), /*#__PURE__*/React.createElement("h1", {
+    style: {
+      margin: 0,
+      fontSize: 30,
+      fontFamily: "'Playfair Display',serif",
+      fontWeight: 600
+    }
+  }, "Venue Tracker")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 24,
+      alignItems: "flex-end",
+      marginBottom: 2,
+      flexWrap: "wrap"
+    }
+  }, [{
+    l: "Total",
+    v: stats.total
+  }, {
+    l: "Avg $/Head",
+    v: `$${stats.avgPrice}`
+  }, {
+    l: "Regions",
+    v: stats.regions
+  }, {
+    l: "Visited",
+    v: stats.visited
+  }, {
+    l: "Used",
+    v: stats.used
+  }, {
+    l: "Booked",
+    v: stats.booked
+  }].map(s => /*#__PURE__*/React.createElement("div", {
+    key: s.l,
+    style: {
+      textAlign: "center"
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: 0,
+      fontSize: 19,
+      fontWeight: 700,
+      fontFamily: "'Playfair Display',serif",
+      color: "#EBF245"
+    }
+  }, s.v), /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: "1px 0 0",
+      fontSize: 10,
+      textTransform: "uppercase",
+      letterSpacing: "0.1em",
+      color: "#888884"
+    }
+  }, s.l))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowSettings(true),
+    style: {
+      background: "none",
+      border: "1px solid #333",
+      borderRadius: 8,
+      color: "#888884",
+      padding: "7px 12px",
+      fontSize: 12,
+      cursor: "pointer",
+      fontWeight: 600
+    }
+  }, "\xC3\xA2\xC2\x9A\xC2\x99 Settings"), /*#__PURE__*/React.createElement("button", {
+    onClick: exportCSV,
+    style: {
+      background: "none",
+      border: "1px solid #333",
+      borderRadius: 8,
+      color: "#888884",
+      padding: "7px 12px",
+      fontSize: 12,
+      cursor: "pointer",
+      fontWeight: 600
+    }
+  }, "\xC3\xA2\xC2\x86\xC2\x93 CSV"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex"
+    }
+  }, [{
+    key: "tracker",
+    label: "My Venues",
+    icon: "Ã¢ÂÂ»"
+  }, {
+    key: "aitools",
+    label: "AI Tools",
+    icon: "Ã¢ÂÂ¦"
+  }].map(tab => /*#__PURE__*/React.createElement("button", {
+    key: tab.key,
+    onClick: () => setMode(tab.key),
+    style: {
+      padding: "11px 26px",
+      border: "none",
+      borderRadius: "8px 8px 0 0",
+      fontSize: 13,
+      fontWeight: 700,
+      cursor: "pointer",
+      background: mode === tab.key ? "#F4F4F0" : "transparent",
+      color: mode === tab.key ? "#0A0A0A" : "#888884"
+    }
+  }, tab.icon, " ", tab.label)))), mode === "aitools" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "0 40px 40px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#FFFFFF",
+      borderRadius: "0 12px 12px 12px",
+      padding: "28px 32px",
+      border: "1px solid #E0E0D8"
+    }
+  }, /*#__PURE__*/React.createElement("h2", {
+    style: {
+      margin: "0 0 4px",
+      fontSize: 19,
+      fontFamily: "'Playfair Display',serif",
+      color: "#0A0A0A"
+    }
+  }, "AI-Powered Event Tools"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: "0 0 24px",
+      fontSize: 13,
+      color: "#6B6B65"
+    }
+  }, "Plan events, match venues, generate briefs \xC3\xA2\xC2\x80\xC2\x94 powered by your tracker data."), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill,minmax(260px,1fr))",
+      gap: 16
+    }
+  }, [{
+    icon: "Ã°ÂÂÂ¯",
+    title: "Smart Venue Matching",
+    desc: `Describe your event and AI picks the best from your ${venues.length} tracked venues.`,
+    action: () => setAiModal("match"),
+    active: true
+  }, {
+    icon: "Ã°ÂÂÂ",
+    title: "Event Brief Generator",
+    desc: "Full event plan with venue recs, menu, budget, and run of show.",
+    action: () => setAiModal("brief"),
+    active: true
+  }, {
+    icon: "Ã¢ÂÂÃ¯Â¸Â",
+    title: "Venue Comparison",
+    desc: compareIds.size >= 2 ? `${compareIds.size} venues selected Ã¢ÂÂ generate report.` : `Select 2-5 venues on My Venues tab. (${compareIds.size} selected)`,
+    action: () => {
+      if (compareIds.size >= 2) setAiModal("compare");
+    },
+    active: compareIds.size >= 2
+  }, {
+    icon: "Ã¢ÂÂÃ¯Â¸Â",
+    title: "Draft Outreach Email",
+    desc: "Open any venue and click 'Ã¢ÂÂ Email' to generate 3 booking email versions.",
+    action: null,
+    active: false
+  }, {
+    icon: "Ã°ÂÂÂ½Ã¯Â¸Â",
+    title: "Dietary & Menu Planner",
+    desc: "Open any venue and click 'Ã°ÂÂÂ½ Menu' for custom menu suggestions.",
+    action: null,
+    active: false
+  }].map(card => /*#__PURE__*/React.createElement("div", {
+    key: card.title,
+    onClick: card.action || undefined,
+    style: {
+      background: "#F4F4F0",
+      borderRadius: 10,
+      padding: 20,
+      border: "1.5px solid #E0E0D8",
+      transition: "all 0.2s",
+      cursor: card.action ? "pointer" : "default",
+      opacity: card.action ? 1 : 0.55
+    },
+    onMouseEnter: e => {
+      if (card.action) {
+        e.currentTarget.style.borderColor = "#0A0A0A";
+        e.currentTarget.style.background = "#EBF245";
+      }
+    },
+    onMouseLeave: e => {
+      e.currentTarget.style.borderColor = "#E0E0D8";
+      e.currentTarget.style.background = "#F4F4F0";
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 24,
+      margin: "0 0 8px"
+    }
+  }, card.icon), /*#__PURE__*/React.createElement("h3", {
+    style: {
+      margin: "0 0 5px",
+      fontSize: 15,
+      fontFamily: "'Playfair Display',serif",
+      color: "#0A0A0A"
+    }
+  }, card.title), /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: 0,
+      fontSize: 12,
+      color: "#6B6B65",
+      lineHeight: 1.55
+    }
+  }, card.desc)))))), mode === "tracker" && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "16px 40px",
+      background: "#FFFFFF",
+      borderBottom: "1px solid #E0E0D8",
+      marginLeft: leftShift,
+      marginRight: rightShift,
+      transition: "margin 0.25s ease"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8,
+      alignItems: "center",
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "relative",
+      flex: "0 0 210px"
+    }
+  }, /*#__PURE__*/React.createElement("input", {
+    value: search,
+    onChange: e => setSearch(e.target.value),
+    placeholder: "Search venues or cities...",
+    style: {
+      ...inp,
+      paddingLeft: 32
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      position: "absolute",
+      left: 10,
+      top: "50%",
+      transform: "translateY(-50%)",
+      color: "#A0A09A",
+      fontSize: 15
+    }
+  }, "\xC3\xA2\xC2\x8C\xC2\x95")), /*#__PURE__*/React.createElement("select", {
+    value: filterRegion,
+    onChange: e => setFilterRegion(e.target.value),
+    style: sel
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "All"
+  }, "All Regions"), Object.keys(REGIONS).map(r => /*#__PURE__*/React.createElement("option", {
+    key: r
+  }, r))), /*#__PURE__*/React.createElement("select", {
+    value: filterSize,
+    onChange: e => setFilterSize(e.target.value),
+    style: sel
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "All"
+  }, "All Sizes"), EVENT_SIZES.map(s => /*#__PURE__*/React.createElement("option", {
+    key: s
+  }, s))), /*#__PURE__*/React.createElement("select", {
+    value: filterStatus,
+    onChange: e => setFilterStatus(e.target.value),
+    style: sel
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "All"
+  }, "All Statuses"), STATUSES.map(s => /*#__PURE__*/React.createElement("option", {
+    key: s
+  }, s))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      border: "1.5px solid #D8D8D0",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, ["All", "Yes", "No"].map(v => /*#__PURE__*/React.createElement("button", {
+    key: v,
+    onClick: () => setFilterVisited(v),
+    style: {
+      padding: "6px 12px",
+      border: "none",
+      background: filterVisited === v ? "#0A0A0A" : "#FFFFFF",
+      color: filterVisited === v ? "#EBF245" : "#6B6B65",
+      fontSize: 11,
+      cursor: "pointer",
+      fontWeight: 700,
+      whiteSpace: "nowrap"
+    }
+  }, v === "All" ? "All" : v === "Yes" ? "Ã¢ÂÂ Visited" : "Not Visited"))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#6B6B65",
+      whiteSpace: "nowrap"
+    }
+  }, "\xC3\xA2\xC2\x89\xC2\xA4 $"), /*#__PURE__*/React.createElement("input", {
+    type: "range",
+    min: 50,
+    max: 300,
+    value: budgetMax,
+    onChange: e => setBudgetMax(+e.target.value),
+    style: {
+      width: 80
+    }
+  }), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 12,
+      fontWeight: 700,
+      color: "#0A0A0A",
+      minWidth: 32
+    }
+  }, budgetMax))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 14,
+      alignItems: "center",
+      marginTop: 10,
+      flexWrap: "wrap"
+    }
+  }, /*#__PURE__*/React.createElement(Toggle, {
+    checked: filterPrivate,
+    onChange: setFilterPrivate,
+    label: "Private Room"
+  }), /*#__PURE__*/React.createElement(Toggle, {
+    checked: filterAV,
+    onChange: setFilterAV,
+    label: "AV Ready"
+  }), /*#__PURE__*/React.createElement(Toggle, {
+    checked: filterDietary,
+    onChange: setFilterDietary,
+    label: "Dietary Flex"
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 5
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: 11,
+      color: "#6B6B65"
+    }
+  }, "Min Exclusivity"), /*#__PURE__*/React.createElement(Stars, {
+    rating: filterExclusivity,
+    interactive: true,
+    onRate: r => setFilterExclusivity(r === filterExclusivity ? 0 : r),
+    size: 15
+  })), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginLeft: "auto",
+      display: "flex",
+      gap: 7,
+      alignItems: "center"
+    }
+  }, /*#__PURE__*/React.createElement("select", {
+    value: sortBy,
+    onChange: e => setSortBy(e.target.value),
+    style: {
+      ...sel,
+      minWidth: 110
+    }
+  }, /*#__PURE__*/React.createElement("option", {
+    value: "name"
+  }, "Sort: Name"), /*#__PURE__*/React.createElement("option", {
+    value: "price"
+  }, "Sort: Price"), /*#__PURE__*/React.createElement("option", {
+    value: "exclusivity"
+  }, "Sort: Exclusivity"), /*#__PURE__*/React.createElement("option", {
+    value: "rating"
+  }, "Sort: Rating"), /*#__PURE__*/React.createElement("option", {
+    value: "city"
+  }, "Sort: City")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      border: "1.5px solid #D8D8D0",
+      borderRadius: 8,
+      overflow: "hidden"
+    }
+  }, ["grid", "table"].map(v => /*#__PURE__*/React.createElement("button", {
+    key: v,
+    onClick: () => setView(v),
+    style: {
+      padding: "5px 12px",
+      border: "none",
+      background: view === v ? "#0A0A0A" : "#FFFFFF",
+      color: view === v ? "#EBF245" : "#6B6B65",
+      fontSize: 12,
+      cursor: "pointer",
+      fontWeight: 700
+    }
+  }, v === "grid" ? "Ã¢ÂÂ» Grid" : "Ã¢ÂÂ° Table"))), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowDiscover(d => !d),
+    style: {
+      ...btnS,
+      padding: "7px 16px",
+      fontSize: 12,
+      background: showDiscover ? "#0A0A0A" : "transparent",
+      color: showDiscover ? "#EBF245" : "#0A0A0A"
+    }
+  }, showDiscover ? "Ã¢ÂÂ Close" : "Ã¢ÂÂ Discover"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setShowAddForm(true),
+    style: btnP
+  }, "+ Add Venue")))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      padding: "20px 40px 80px",
+      marginLeft: leftShift,
+      marginRight: rightShift,
+      transition: "margin 0.25s ease"
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      margin: "0 0 12px",
+      fontSize: 12,
+      color: "#6B6B65"
+    }
+  }, "Showing ", filtered.length, " of ", venues.length, " venues"), view === "grid" ? /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "grid",
+      gridTemplateColumns: "repeat(auto-fill,minmax(290px,1fr))",
+      gap: 14
+    }
+  }, filtered.map(v => /*#__PURE__*/React.createElement(VenueCard, {
+    key: v.id,
+    venue: v
+  }))) : /*#__PURE__*/React.createElement("div", {
+    style: {
+      background: "#FFFFFF",
+      borderRadius: 12,
+      border: "1.5px solid #E0E0D8",
+      overflow: "hidden"
+    }
+  }, /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      fontSize: 13
+    }
+  }, /*#__PURE__*/React.createElement("thead", null, /*#__PURE__*/React.createElement("tr", {
+    style: {
+      borderBottom: "2px solid #E0E0D8"
+    }
+  }, ["Venue", "City", "Region", "$/Head", "Website", "Visited", "Exclusivity", "Status", "Features", "Rating"].map(h => /*#__PURE__*/React.createElement("th", {
+    key: h,
+    style: {
+      padding: "10px 12px",
+      textAlign: "left",
+      fontSize: 10,
+      textTransform: "uppercase",
+      letterSpacing: "0.1em",
+      color: "#6B6B65",
+      fontWeight: 700,
+      background: "#F4F4F0"
+    }
+  }, h)))), /*#__PURE__*/React.createElement("tbody", null, filtered.map(v => /*#__PURE__*/React.createElement(VenueRow, {
+    key: v.id,
+    venue: v
+  }))))), filtered.length === 0 && /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "center",
+      padding: "60px 20px",
+      color: "#A0A09A"
+    }
+  }, /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 44,
+      margin: "0 0 10px"
+    }
+  }, "\xC3\xB0\xC2\x9F\xC2\x8D\xC2\xBD"), /*#__PURE__*/React.createElement("p", {
+    style: {
+      fontSize: 16,
+      fontFamily: "'Playfair Display',serif",
+      color: "#3A3A35"
+    }
+  }, "No venues match your filters")))), showDiscover && mode === "tracker" && /*#__PURE__*/React.createElement(DiscoverPanel, {
+    venues: venues,
+    discoverCity: discoverCity,
+    setDiscoverCity: setDiscoverCity,
+    discoverType: discoverType,
+    setDiscoverType: setDiscoverType,
+    searchMode: searchMode,
+    setSearchMode: setSearchMode,
+    batchCities: batchCities,
+    setBatchCities: setBatchCities,
+    isSearching: isSearching,
+    batchProgress: batchProgress,
+    discoveredVenues: discoveredVenues,
+    savedIds: savedIds,
+    searchError: searchError,
+    apiKey: apiKey,
+    discoverVenues: discoverVenues,
+    saveDiscovered: saveDiscovered,
+    setShowDiscover: setShowDiscover
+  }), selectedVenue && /*#__PURE__*/React.createElement(DetailPanel, {
+    key: selectedVenue.id,
+    venue: selectedVenue
+  }), showAddForm && /*#__PURE__*/React.createElement(AddForm, null), showSettings && /*#__PURE__*/React.createElement(SettingsModal, null), /*#__PURE__*/React.createElement(AiModal, null), compareIds.size > 0 && mode === "tracker" && /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      bottom: 0,
+      left: leftShift,
+      right: rightShift,
+      background: "#0A0A0A",
+      padding: "12px 40px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      zIndex: 90,
+      boxShadow: "0 -4px 20px rgba(0,0,0,0.2)",
+      transition: "left 0.25s,right 0.25s"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      alignItems: "center",
+      gap: 10
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#EBF245",
+      fontSize: 13,
+      fontWeight: 700
+    }
+  }, compareIds.size, " venue", compareIds.size > 1 ? "s" : "", " selected"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 5,
+      flexWrap: "wrap"
+    }
+  }, venues.filter(v => compareIds.has(v.id)).map(v => /*#__PURE__*/React.createElement("span", {
+    key: v.id,
+    style: {
+      background: "#1A1A1A",
+      color: "#EBF245",
+      padding: "2px 10px",
+      borderRadius: 6,
+      fontSize: 12,
+      fontWeight: 600
+    }
+  }, v.name)))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      display: "flex",
+      gap: 8
+    }
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => {
+      if (compareIds.size >= 2) {
+        setMode("aitools");
+        setAiModal("compare");
+      }
+    },
+    disabled: compareIds.size < 2,
+    style: {
+      ...btnP,
+      padding: "7px 18px",
+      fontSize: 12,
+      background: compareIds.size >= 2 ? "#EBF245" : "#333",
+      color: compareIds.size >= 2 ? "#0A0A0A" : "#6B6B65"
+    }
+  }, "\xC3\xA2\xC2\x9A\xC2\x96\xC3\xAF\xC2\xB8\xC2\x8F Compare", compareIds.size < 2 ? ` (need ${2 - compareIds.size} more)` : ""), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setCompareIds(new Set()),
+    style: {
+      ...btnS,
+      padding: "7px 14px",
+      fontSize: 12,
+      color: "#888884",
+      borderColor: "#333"
+    }
+  }, "Clear"))));
 }
-
 let __mountNode = document.getElementById("root");
-if (!__mountNode) { __mountNode = document.createElement("div"); __mountNode.id = "root"; document.body.prepend(__mountNode); }
-ReactDOM.render(<VenueTracker/>,__mountNode);
+if (!__mountNode) {
+  __mountNode = document.createElement("div");
+  __mountNode.id = "root";
+  document.body.prepend(__mountNode);
+}
+ReactDOM.render( /*#__PURE__*/React.createElement(VenueTracker, null), __mountNode);
 </script>
 </head>
 <body>
