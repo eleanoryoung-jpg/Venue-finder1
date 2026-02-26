@@ -1053,7 +1053,9 @@ function VenueTracker() {
   );
 }
 
-ReactDOM.render(<VenueTracker/>,document.getElementById("root"));
+let __mountNode = document.getElementById("root");
+if (!__mountNode) { __mountNode = document.createElement("div"); __mountNode.id = "root"; document.body.prepend(__mountNode); }
+ReactDOM.render(<VenueTracker/>,__mountNode);
 </script>
 </body>
 </html>
