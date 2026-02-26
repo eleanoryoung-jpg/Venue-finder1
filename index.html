@@ -561,7 +561,12 @@ function VenueTracker() {
             {venue.visited&&<span style={{fontSize:11,color:"#1A5C3A",fontWeight:700,background:"#EDFAF3",padding:"2px 8px",borderRadius:6,border:"1px solid #B7E4C7"}}>✓ Visited</span>}
             <div style={{marginLeft:"auto"}}><Stars rating={venue.exclusivity} size={13}/></div>
           </div>
-          {venue.website&&<p style={{fontSize:11,color:"#4A6FA5",margin:"0 0 8px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🔗 {venue.website}</p>}
+          {venue.website&&<a href={venue.website} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()}
+            style={{fontSize:11,color:"#4A6FA5",margin:"0 0 8px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",display:"block",textDecoration:"none"}}
+            onMouseEnter={e=>e.currentTarget.style.textDecoration="underline"}
+            onMouseLeave={e=>e.currentTarget.style.textDecoration="none"}>
+            🔗 {venue.website}
+          </a>}
           <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
             {venue.privateRoom&&<Tag color="#2A7A5A">Private</Tag>}
             {venue.av&&<Tag color="#4A6FA5">AV</Tag>}
@@ -632,7 +637,22 @@ function VenueTracker() {
           <div style={{marginBottom:16}}>
             <label style={lbl}>Website</label>
             {isEditing?<input value={ed.website||""} onChange={e=>setEd({...ed,website:e.target.value})} placeholder="https://..." style={{...inp,marginTop:4}}/>
-              :<div style={{marginTop:4}}>{venue.website?<a href={venue.website} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"#4A6FA5",textDecoration:"none"}}>🔗 {venue.website}</a>:<span style={{fontSize:13,color:"#A0A09A"}}>—</span>}</div>}
+              :<div style={{marginTop:4,display:"flex",alignItems:"center",gap:10}}>
+                {venue.website
+                  ?<React.Fragment>
+                    <a href={venue.website} target="_blank" rel="noopener noreferrer"
+                      style={{fontSize:13,color:"#4A6FA5",textDecoration:"none",flex:1,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}
+                      onMouseEnter={e=>e.currentTarget.style.textDecoration="underline"}
+                      onMouseLeave={e=>e.currentTarget.style.textDecoration="none"}>
+                      🔗 {venue.website}
+                    </a>
+                    <a href={venue.website} target="_blank" rel="noopener noreferrer"
+                      style={{...btnP,padding:"6px 14px",fontSize:11,textDecoration:"none",whiteSpace:"nowrap",flexShrink:0}}>
+                      Visit Site ↗
+                    </a>
+                  </React.Fragment>
+                  :<span style={{fontSize:13,color:"#A0A09A"}}>—</span>}
+              </div>}
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:16,marginBottom:20}}>
             <div><label style={lbl}>Price / Head</label>
