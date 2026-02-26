@@ -17,11 +17,10 @@
     ::-webkit-scrollbar-thumb{background:#D0D0C8;border-radius:3px}
     ::-webkit-scrollbar-thumb:hover{background:#A0A09A}
     input[type="range"]{accent-color:#0A0A0A}
-    @keyframes slideInRight{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+    @keyframes slideInRight{from{transform:translateX(100%)}to{transform:translateX(0)}}
     @keyframes slideInLeft{from{transform:translateX(-100%)}to{transform:translateX(0)}}
-    @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
     @keyframes spin{to{transform:rotate(360deg)}}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
     select,input,textarea,button{font-family:'DM Sans',sans-serif}
   </style>
 </head>
@@ -40,11 +39,11 @@ const REGIONS = {
 };
 const EVENT_SIZES = ["Intimate (8-20)","Mid-size (20-50)","Large (50-100+)"];
 const STATUSES = ["Prospect","Contacted","Booked","Used","Archived"];
-const STATUS_COLORS = {
-  Prospect:"#6B6B65",Contacted:"#2A7A5A",Booked:"#0A0A0A",Used:"#1A5C3A",Archived:"#AAAAAA"
-};
+const STATUS_COLORS = {Prospect:"#6B6B65",Contacted:"#2A7A5A",Booked:"#0A0A0A",Used:"#1A5C3A",Archived:"#AAAAAA"};
 const STORAGE_KEY = "venue-tracker-data-v2";
 const API_KEY_STORAGE = "venue-tracker-api-key";
+const PHOTOS_PROXY = "/api/photos-proxy";
+const photoCache = {};
 
 const DISCOVER_TYPES = [
   {value:"upscale restaurants with private dining rooms",label:"Upscale restaurants with private dining"},
@@ -58,22 +57,18 @@ const loadVenues = () => {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
     if (saved) return JSON.parse(saved);
-    // try migrating old data
     const old = localStorage.getItem("venue-tracker-data");
-    if (old) {
-      const parsed = JSON.parse(old);
-      return parsed.map(v => ({...v, visited: v.status === "Visited" ? true : false, website: v.website || ""}));
-    }
+    if (old) { const p = JSON.parse(old); return p.map(v=>({...v,visited:v.status==="Visited",website:v.website||""})); }
   } catch(e) {}
   return [
     {id:1,name:"The Capital Grille",city:"New York",region:"Northeast",eventSizes:["Intimate (8-20)","Mid-size (20-50)"],pricePerHead:185,privateRoom:true,av:false,dietary:true,exclusivity:4,status:"Used",visited:true,website:"https://www.thecapitalgrille.com",notes:"Excellent private dining room on 2nd floor. Sommelier very attentive. Used for Q3 CISO dinner — great feedback.",contact:"Sarah M.",phone:"(212) 555-0134",lastUsed:"2025-09-15",rating:5},
     {id:2,name:"RPM Italian",city:"Chicago",region:"Midwest",eventSizes:["Intimate (8-20)","Mid-size (20-50)"],pricePerHead:165,privateRoom:true,av:false,dietary:true,exclusivity:5,status:"Used",visited:true,website:"https://www.rpmrestaurants.com/rpm-italian",notes:"Hard to get the private room — book 6+ weeks out. Celebrity chef kitchen. Clients love it.",contact:"Marco D.",phone:"(312) 555-0198",lastUsed:"2025-08-22",rating:5},
     {id:3,name:"Nobu Dallas",city:"Dallas",region:"Southwest",eventSizes:["Intimate (8-20)","Mid-size (20-50)","Large (50-100+)"],pricePerHead:210,privateRoom:true,av:true,dietary:true,exclusivity:5,status:"Booked",visited:false,website:"https://www.noburestaurants.com/dallas",notes:"Booked for Feb exec dinner. Multiple private spaces available. AV in the larger room.",contact:"Jennifer L.",phone:"(214) 555-0267",lastUsed:"",rating:0},
-    {id:4,name:"The Sloane",city:"San Francisco",region:"West Coast",eventSizes:["Mid-size (20-50)","Large (50-100+)"],pricePerHead:140,privateRoom:true,av:true,dietary:true,exclusivity:3,status:"Contacted",visited:true,website:"",notes:"Modern event space with great AV setup. Rooftop option for cocktail hour. Good for product launch events.",contact:"David K.",phone:"(415) 555-0312",lastUsed:"",rating:4},
+    {id:4,name:"The Sloane",city:"San Francisco",region:"West Coast",eventSizes:["Mid-size (20-50)","Large (50-100+)"],pricePerHead:140,privateRoom:true,av:true,dietary:true,exclusivity:3,status:"Contacted",visited:true,website:"",notes:"Modern event space with great AV setup. Rooftop option for cocktail hour.",contact:"David K.",phone:"(415) 555-0312",lastUsed:"",rating:4},
     {id:5,name:"STK Atlanta",city:"Atlanta",region:"Southeast",eventSizes:["Intimate (8-20)","Mid-size (20-50)"],pricePerHead:155,privateRoom:true,av:false,dietary:true,exclusivity:4,status:"Prospect",visited:false,website:"https://www.stksteakhouse.com/venues/atlanta",notes:"Recommended by sales team. Upscale vibe, good energy. Need to do site visit.",contact:"",phone:"",lastUsed:"",rating:0},
-    {id:6,name:"Mbar at Mandarin Oriental",city:"Miami",region:"Southeast",eventSizes:["Intimate (8-20)"],pricePerHead:225,privateRoom:true,av:false,dietary:true,exclusivity:5,status:"Contacted",visited:false,website:"",notes:"Ultra-premium. Perfect for C-suite intimate dinners. Ocean views. Waiting on private dining availability for March.",contact:"Isabella R.",phone:"(305) 555-0445",lastUsed:"",rating:0},
-    {id:7,name:"The Warehouse District Venue",city:"Minneapolis",region:"Midwest",eventSizes:["Mid-size (20-50)","Large (50-100+)"],pricePerHead:95,privateRoom:true,av:true,dietary:true,exclusivity:2,status:"Used",visited:true,website:"",notes:"Great value for larger field events. Industrial chic vibe. Full AV with projector and sound. Catering is flexible.",contact:"Tom H.",phone:"(612) 555-0178",lastUsed:"2025-07-10",rating:4},
-    {id:8,name:"Ocean Prime",city:"Denver",region:"Southwest",eventSizes:["Intimate (8-20)","Mid-size (20-50)"],pricePerHead:170,privateRoom:true,av:false,dietary:true,exclusivity:4,status:"Prospect",visited:false,website:"https://www.oceanprime.com",notes:"Corporate dining favorite in LoDo. Multiple private rooms. Need to reach out for pricing on 30-person events.",contact:"",phone:"",lastUsed:"",rating:0},
+    {id:6,name:"Mbar at Mandarin Oriental",city:"Miami",region:"Southeast",eventSizes:["Intimate (8-20)"],pricePerHead:225,privateRoom:true,av:false,dietary:true,exclusivity:5,status:"Contacted",visited:false,website:"",notes:"Ultra-premium. Perfect for C-suite intimate dinners. Ocean views.",contact:"Isabella R.",phone:"(305) 555-0445",lastUsed:"",rating:0},
+    {id:7,name:"The Warehouse District Venue",city:"Minneapolis",region:"Midwest",eventSizes:["Mid-size (20-50)","Large (50-100+)"],pricePerHead:95,privateRoom:true,av:true,dietary:true,exclusivity:2,status:"Used",visited:true,website:"",notes:"Great value for larger field events. Industrial chic vibe. Full AV with projector and sound.",contact:"Tom H.",phone:"(612) 555-0178",lastUsed:"2025-07-10",rating:4},
+    {id:8,name:"Ocean Prime",city:"Denver",region:"Southwest",eventSizes:["Intimate (8-20)","Mid-size (20-50)"],pricePerHead:170,privateRoom:true,av:false,dietary:true,exclusivity:4,status:"Prospect",visited:false,website:"https://www.oceanprime.com",notes:"Corporate dining favorite in LoDo. Multiple private rooms.",contact:"",phone:"",lastUsed:"",rating:0},
   ];
 };
 
@@ -91,14 +86,14 @@ const emptyVenue = () => ({
   visited:false,website:"",notes:"",contact:"",phone:"",lastUsed:"",rating:0,
 });
 
-// ═══ SHARED STYLES ═══
+// ═══ STYLES ═══
 const sel = {padding:"8px 12px",borderRadius:8,border:"1.5px solid #D8D8D0",background:"#FFFFFF",fontSize:13,fontFamily:"'DM Sans',sans-serif",color:"#0A0A0A",outline:"none",cursor:"pointer",minWidth:130,boxSizing:"border-box"};
 const inp = {...sel,cursor:"text",width:"100%"};
 const btnP = {padding:"10px 24px",borderRadius:8,border:"none",background:"#0A0A0A",color:"#EBF245",fontSize:13,fontFamily:"'DM Sans',sans-serif",fontWeight:700,cursor:"pointer",letterSpacing:"0.02em"};
 const btnS = {...btnP,background:"transparent",color:"#0A0A0A",border:"1.5px solid #0A0A0A"};
 const lbl = {fontSize:11,textTransform:"uppercase",letterSpacing:"0.08em",color:"#6B6B65",fontFamily:"'DM Sans',sans-serif",fontWeight:600};
 
-// ═══ REUSABLE ═══
+// ═══ REUSABLE COMPONENTS ═══
 const Stars = ({rating,onRate,size=16,interactive=false}) => (
   <div style={{display:"flex",gap:2}}>
     {[1,2,3,4,5].map(s=>(
@@ -110,7 +105,8 @@ const Stars = ({rating,onRate,size=16,interactive=false}) => (
 
 const Tag = ({children,color="#0A0A0A",filled=false}) => (
   <span style={{display:"inline-block",padding:"2px 10px",borderRadius:6,fontSize:11,fontWeight:600,letterSpacing:"0.02em",
-    background:filled?color:"transparent",color:filled?(color==="0A0A0A"||color==="#0A0A0A"?"#EBF245":"#fff"):color,border:`1.5px solid ${color}`,lineHeight:"20px",whiteSpace:"nowrap"}}>{children}</span>
+    background:filled?color:"transparent",color:filled?(color==="#0A0A0A"?"#EBF245":"#fff"):color,
+    border:`1.5px solid ${color}`,lineHeight:"20px",whiteSpace:"nowrap"}}>{children}</span>
 );
 
 const Toggle = ({checked,onChange,label}) => (
@@ -123,30 +119,95 @@ const Toggle = ({checked,onChange,label}) => (
 );
 
 const Spinner = () => (
-  <div style={{width:32,height:32,border:"3px solid #E8E2D9",borderTopColor:"#8B7355",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>
+  <div style={{width:32,height:32,border:"3px solid #E0E0D8",borderTopColor:"#0A0A0A",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>
 );
 
-// ═══ DISCOVER PANEL (outside VenueTracker to prevent re-render glitch) ═══
-function DiscoverPanel({venues, discoverCity, setDiscoverCity, discoverType, setDiscoverType,
-  searchMode, setSearchMode, batchCities, setBatchCities, isSearching, batchProgress,
-  discoveredVenues, savedIds, searchError, apiKey, discoverVenues, saveDiscovered,
-  setShowDiscover, DISCOVER_TYPES}) {
+// ═══ VENUE PHOTO (top-level, stable) ═══
+const VenuePhoto = ({name, city, height=150}) => {
+  const [photoUrl, setPhotoUrl] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+    const key = `${name}-${city}`;
+    if (photoCache[key]) { setPhotoUrl(photoCache[key]); setLoading(false); return; }
+    setLoading(true);
+    fetch(`${PHOTOS_PROXY}?query=${encodeURIComponent(name+" "+city+" restaurant interior dining")}&per_page=1`)
+      .then(r => r.ok ? r.json() : null)
+      .then(data => {
+        if (cancelled) return;
+        const url = data?.photos?.[0]?.src?.landscape || data?.photos?.[0]?.src?.large || null;
+        if (url) photoCache[key] = url;
+        setPhotoUrl(url);
+        setLoading(false);
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, [name, city]);
+
+  const hue = name.split("").reduce((a,c)=>a+c.charCodeAt(0),0) % 360;
+  const gradient = `linear-gradient(135deg, hsl(${hue},25%,20%) 0%, hsl(${(hue+40)%360},30%,35%) 100%)`;
+
+  return (
+    <div style={{width:"100%",height,background:gradient,position:"relative",overflow:"hidden",flexShrink:0}}>
+      {loading && <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}><div style={{width:20,height:20,border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/></div>}
+      {!loading && photoUrl && <img src={photoUrl} alt={name} style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}} onError={()=>setPhotoUrl(null)}/>}
+      {!loading && !photoUrl && <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4}}><span style={{fontSize:28}}>🍽</span><span style={{fontSize:11,color:"rgba(255,255,255,0.7)",fontWeight:600,textAlign:"center",padding:"0 12px"}}>{name}</span></div>}
+    </div>
+  );
+};
+
+// ═══ DISC CARD (top-level, stable) ═══
+const DiscCard = ({dv, savedIds, venues, saveDiscovered}) => {
+  const isSaved = savedIds.has(dv._id);
+  const alreadyIn = venues.some(v=>v.name.toLowerCase()===dv.name.toLowerCase());
+  return(
+    <div style={{background:"#fff",borderRadius:10,padding:16,border:"1.5px solid #E0E0D8",marginBottom:10,animation:"fadeIn 0.3s ease"}}
+      onMouseEnter={e=>{e.currentTarget.style.borderColor="#0A0A0A";}}
+      onMouseLeave={e=>{e.currentTarget.style.borderColor="#E0E0D8";}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
+        <div style={{flex:1}}>
+          <h3 style={{margin:0,fontSize:15,fontFamily:"'Playfair Display',serif",color:"#0A0A0A",fontWeight:600}}>{dv.name}</h3>
+          <p style={{margin:"2px 0 0",fontSize:12,color:"#6B6B65"}}>{[dv.neighborhood,dv.cuisine].filter(Boolean).join(" · ")}</p>
+        </div>
+        <span style={{fontSize:13,fontWeight:600,color:"#0A0A0A",whiteSpace:"nowrap",marginLeft:8}}>{dv.priceRange}</span>
+      </div>
+      <p style={{fontSize:12,color:"#5A5348",lineHeight:1.5,margin:"8px 0 10px"}}>{dv.description}</p>
+      <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
+        {dv.privateRoom&&<Tag color="#2A7A5A">Private Dining</Tag>}
+        {dv.capacity&&<Tag color="#4A6FA5">{dv.capacity}</Tag>}
+        {dv.estimatedPricePerHead>0&&<Tag color="#0A0A0A">~${dv.estimatedPricePerHead}/head</Tag>}
+      </div>
+      {dv.knownFor&&<p style={{fontSize:11,color:"#6B6B65",fontStyle:"italic",margin:"0 0 4px"}}>Known for: {dv.knownFor}</p>}
+      {dv.website&&<a href={dv.website} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"#4A6FA5",display:"block",marginBottom:4,textDecoration:"none"}}>🔗 {dv.website}</a>}
+      {dv.sources&&<p style={{fontSize:11,color:"#4A6FA5",margin:"0 0 10px",fontWeight:500}}>📍 {dv.sources}</p>}
+      <button onClick={()=>!isSaved&&!alreadyIn&&saveDiscovered(dv)} disabled={isSaved||alreadyIn}
+        style={{...btnP,width:"100%",textAlign:"center",fontSize:12,padding:"8px 0",background:isSaved||alreadyIn?"#D0D0C8":"#0A0A0A",cursor:isSaved||alreadyIn?"default":"pointer"}}>
+        {alreadyIn?"Already in Tracker":isSaved?"✓ Saved":"＋ Save to Tracker"}
+      </button>
+    </div>
+  );
+};
+
+// ═══ DISCOVER PANEL (top-level, stable — prevents re-render glitch) ═══
+const DiscoverPanel = React.memo(({venues,discoverCity,setDiscoverCity,discoverType,setDiscoverType,
+  searchMode,setSearchMode,batchCities,setBatchCities,isSearching,batchProgress,
+  discoveredVenues,savedIds,searchError,apiKey,discoverVenues,saveDiscovered,setShowDiscover}) => {
 
   const allCities = useMemo(() => {
-    const regionCities = Object.values(REGIONS).flat();
-    const venueCities = venues.map(v => v.city).filter(Boolean);
-    return [...new Set([...regionCities, ...venueCities])].sort();
+    const rc = Object.values(REGIONS).flat();
+    const vc = venues.map(v=>v.city).filter(Boolean);
+    return [...new Set([...rc,...vc])].sort();
   }, [venues]);
 
-  const [batchSelected, setBatchSelected] = useState(() => {
-    const existing = new Set(batchCities.split(/[,\n]/).map(c=>c.trim()).filter(Boolean));
-    return existing;
-  });
+  const [batchSelected, setBatchSelected] = useState(() =>
+    new Set(batchCities.split(/[,\n]/).map(c=>c.trim()).filter(Boolean))
+  );
   const [citySearch, setCitySearch] = useState("");
 
-  const filteredCities = useMemo(() => citySearch
-    ? allCities.filter(c => c.toLowerCase().includes(citySearch.toLowerCase()))
-    : allCities, [allCities, citySearch]);
+  const filteredCities = useMemo(() =>
+    citySearch ? allCities.filter(c=>c.toLowerCase().includes(citySearch.toLowerCase())) : allCities
+  , [allCities, citySearch]);
 
   const toggleCity = useCallback((city) => {
     setBatchSelected(prev => {
@@ -156,158 +217,152 @@ function DiscoverPanel({venues, discoverCity, setDiscoverCity, discoverType, set
     });
   }, []);
 
-  useEffect(() => {
-    setBatchCities([...batchSelected].join("\n"));
-  }, [batchSelected]);
-
-  const savedIdsCount = savedIds.size;
+  useEffect(() => { setBatchCities([...batchSelected].join("\n")); }, [batchSelected]);
 
   return(
-      <div style={{position:"fixed",top:0,left:0,width:560,height:"100vh",background:"#FFFFFF",borderRight:"1px solid #E0E0D8",zIndex:100,display:"flex",flexDirection:"column",boxShadow:"8px 0 40px rgba(0,0,0,0.08)",animation:"slideInLeft 0.25s ease"}}>
-        <div style={{padding:"24px 28px",borderBottom:"1px solid #E0E0D8",flexShrink:0}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+    <div style={{position:"fixed",top:0,left:0,width:560,height:"100vh",background:"#FFFFFF",borderRight:"1px solid #E0E0D8",zIndex:100,display:"flex",flexDirection:"column",boxShadow:"8px 0 40px rgba(0,0,0,0.08)",animation:"slideInLeft 0.25s ease"}}>
+      <div style={{padding:"24px 28px",borderBottom:"1px solid #E0E0D8",flexShrink:0}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+          <div>
+            <h2 style={{margin:0,fontSize:20,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>Discover Venues</h2>
+            <p style={{margin:"4px 0 0",fontSize:13,color:"#6B6B65"}}>Find venues in any city to add to your tracker</p>
+          </div>
+          <button onClick={()=>setShowDiscover(false)} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#A0A09A",padding:4,lineHeight:1}}>✕</button>
+        </div>
+        <div style={{display:"flex",border:"1.5px solid #D8D8D0",borderRadius:8,overflow:"hidden",marginBottom:14}}>
+          {["single","batch"].map(m=>(
+            <button key={m} onClick={()=>setSearchMode(m)} style={{flex:1,padding:"7px 0",border:"none",background:searchMode===m?"#0A0A0A":"#FFFFFF",color:searchMode===m?"#EBF245":"#6B6B65",fontSize:12,cursor:"pointer",fontWeight:700}}>
+              {m==="single"?"Single City":"Batch Search"}
+            </button>
+          ))}
+        </div>
+        {searchMode==="single"?(
+          <div style={{display:"grid",gap:10}}>
             <div>
-              <h2 style={{margin:0,fontSize:20,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>Discover Venues</h2>
-              <p style={{margin:"4px 0 0",fontSize:13,color:"#6B6B65"}}>Find venues in any city to add to your tracker</p>
+              <label style={{...lbl,display:"block",marginBottom:4}}>City</label>
+              <input value={discoverCity} onChange={e=>setDiscoverCity(e.target.value)} placeholder="e.g. Houston, Nashville, Raleigh..."
+                onKeyDown={e=>e.key==="Enter"&&discoverVenues()} style={{...inp,padding:"10px 14px"}}/>
             </div>
-            <button onClick={()=>setShowDiscover(false)} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#A0A09A",padding:4,lineHeight:1}}>✕</button>
-          </div>
-          <div style={{display:"flex",border:"1.5px solid #D8D8D0",borderRadius:8,overflow:"hidden",marginBottom:14}}>
-            {["single","batch"].map(m=>(
-              <button key={m} onClick={()=>setSearchMode(m)} style={{flex:1,padding:"7px 0",border:"none",background:searchMode===m?"#0A0A0A":"#FFFFFF",color:searchMode===m?"#EBF245":"#6B6B65",fontSize:12,cursor:"pointer",fontWeight:700}}>
-                {m==="single"?"Single City":"Batch Search"}
-              </button>
-            ))}
-          </div>
-          {searchMode==="single"?(
-            <div style={{display:"grid",gap:10}}>
-              <div>
-                <label style={{...lbl,display:"block",marginBottom:4}}>City</label>
-                <input value={discoverCity} onChange={e=>setDiscoverCity(e.target.value)} placeholder="e.g. Houston, Nashville, Raleigh..."
-                  onKeyDown={e=>e.key==="Enter"&&discoverVenues()} style={{...inp,padding:"10px 14px"}}/>
-              </div>
-              <div>
-                <label style={{...lbl,display:"block",marginBottom:4}}>Venue Type</label>
-                <select value={discoverType} onChange={e=>setDiscoverType(e.target.value)} style={{...sel,width:"100%",padding:"10px 14px"}}>
-                  {DISCOVER_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
-              </div>
-              <button onClick={discoverVenues} disabled={isSearching||!discoverCity.trim()} style={{...btnP,opacity:isSearching||!discoverCity.trim()?.6:1,padding:"11px 0"}}>
-                {isSearching?"Searching...":"Search Venues"}
-              </button>
+            <div>
+              <label style={{...lbl,display:"block",marginBottom:4}}>Venue Type</label>
+              <select value={discoverType} onChange={e=>setDiscoverType(e.target.value)} style={{...sel,width:"100%",padding:"10px 14px"}}>
+                {DISCOVER_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
             </div>
-          ):(
-            <div style={{display:"grid",gap:10}}>
-              <div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                  <label style={{...lbl}}>Select Cities <span style={{color:"#0A0A0A",fontWeight:700}}>({batchSelected.size}/15)</span></label>
-                  {batchSelected.size>0&&<button onClick={()=>setBatchSelected(new Set())} style={{background:"none",border:"none",fontSize:11,color:"#6B6B65",cursor:"pointer",fontWeight:600,padding:0}}>Clear all</button>}
-                </div>
-                {batchSelected.size>0&&(
-                  <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
-                    {[...batchSelected].map(city=>(
-                      <span key={city} onClick={()=>toggleCity(city)}
-                        style={{display:"inline-flex",alignItems:"center",gap:4,background:"#0A0A0A",color:"#EBF245",padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer"}}>
-                        {city} <span style={{fontSize:14,lineHeight:1}}>×</span>
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <div>
-                  <input value={citySearch} onChange={e=>setCitySearch(e.target.value)}
-                    placeholder="Search cities..." style={{...inp,padding:"8px 12px",borderRadius:"8px 8px 0 0"}}/>
-                  {batchSelected.size<15&&(
-                    <div style={{maxHeight:180,overflowY:"auto",border:"1.5px solid #D8D8D0",borderTop:"none",borderRadius:"0 0 8px 8px",background:"#FFFFFF"}}>
-                      {filteredCities.filter(c=>!batchSelected.has(c)).length===0?(
-                        <p style={{padding:"10px 12px",fontSize:13,color:"#A0A09A",margin:0}}>No cities found</p>
-                      ):filteredCities.filter(c=>!batchSelected.has(c)).map(city=>(
-                        <div key={city} onClick={()=>toggleCity(city)}
-                          style={{padding:"8px 14px",fontSize:13,color:"#0A0A0A",cursor:"pointer",transition:"background 0.1s",borderBottom:"1px solid #F4F4F0"}}
-                          onMouseEnter={e=>e.currentTarget.style.background="#EBF245"}
-                          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                          {city}
-                          {venues.some(v=>v.city===city)&&<span style={{fontSize:11,color:"#6B6B65",marginLeft:6}}>({venues.filter(v=>v.city===city).length} saved)</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+            <button onClick={discoverVenues} disabled={isSearching||!discoverCity.trim()} style={{...btnP,opacity:isSearching||!discoverCity.trim()?0.6:1,padding:"11px 0"}}>
+              {isSearching?"Searching...":"Search Venues"}
+            </button>
+          </div>
+        ):(
+          <div style={{display:"grid",gap:10}}>
+            <div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                <label style={lbl}>Select Cities <span style={{color:"#0A0A0A",fontWeight:700}}>({batchSelected.size}/15)</span></label>
+                {batchSelected.size>0&&<button onClick={()=>setBatchSelected(new Set())} style={{background:"none",border:"none",fontSize:11,color:"#6B6B65",cursor:"pointer",fontWeight:600,padding:0}}>Clear all</button>}
               </div>
-              <div>
-                <label style={{...lbl,display:"block",marginBottom:4}}>Venue Type</label>
-                <select value={discoverType} onChange={e=>setDiscoverType(e.target.value)} style={{...sel,width:"100%",padding:"10px 14px"}}>
-                  {DISCOVER_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
-              </div>
-              {isSearching&&batchProgress.total>1&&(
-                <div>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                    <span style={{fontSize:12,color:"#3A3A35",fontWeight:600}}>Searching {batchProgress.currentCity}...</span>
-                    <span style={{fontSize:12,color:"#6B6B65"}}>{batchProgress.current}/{batchProgress.total}</span>
-                  </div>
-                  <div style={{height:6,background:"#E0E0D8",borderRadius:3,overflow:"hidden"}}>
-                    <div style={{height:"100%",background:"#0A0A0A",borderRadius:3,width:`${(batchProgress.current/batchProgress.total)*100}%`,transition:"width 0.5s ease"}}/>
-                  </div>
+              {batchSelected.size>0&&(
+                <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
+                  {[...batchSelected].map(city=>(
+                    <span key={city} onClick={()=>toggleCity(city)}
+                      style={{display:"inline-flex",alignItems:"center",gap:4,background:"#0A0A0A",color:"#EBF245",padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                      {city} <span style={{fontSize:14,lineHeight:1}}>×</span>
+                    </span>
+                  ))}
                 </div>
               )}
-              <button onClick={discoverVenues} disabled={isSearching||batchSelected.size===0} style={{...btnP,opacity:isSearching||batchSelected.size===0?.6:1,padding:"11px 0"}}>
-                {isSearching?`Searching ${batchProgress.current+1}/${batchProgress.total}...`:`Search ${batchSelected.size} ${batchSelected.size===1?"City":"Cities"}`}
-              </button>
-            </div>
-          )}
-          {!apiKey&&<p style={{margin:"10px 0 0",fontSize:12,color:"#C0392B",fontWeight:600}}>⚠ Set up your API key in Settings to enable search.</p>}
-        </div>
-        <div style={{flex:1,overflowY:"auto",padding:"16px 28px"}}>
-          {isSearching&&discoveredVenues.length===0&&(
-            <div style={{padding:"32px 0",textAlign:"center"}}>
-              <Spinner/>
-              <p style={{color:"#6B6B65",fontSize:14,marginTop:12}}>Searching{batchProgress.currentCity?` ${batchProgress.currentCity}`:""}...</p>
-            </div>
-          )}
-          {searchError&&<div style={{background:"#FFF5F5",border:"1px solid #E8C4C4",borderRadius:10,padding:16,color:"#8B4444",fontSize:13,marginBottom:12}}>{searchError}</div>}
-          {discoveredVenues.length>0&&(
-            <div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                <p style={{margin:0,fontSize:13,color:"#0A0A0A",fontWeight:700}}>{discoveredVenues.length} venues found{isSearching?" (searching...)":""}</p>
-                {savedIdsCount>0&&<p style={{margin:0,fontSize:12,color:"#1A5C3A",fontWeight:700}}>{savedIdsCount} saved ✓</p>}
-              </div>
-              {(()=>{
-                const cities=[...new Set(discoveredVenues.map(v=>v.city||"Unknown"))];
-                const multi=cities.length>1;
-                return multi?cities.map(city=>{
-                  const cvs=discoveredVenues.filter(v=>v.city===city);
-                  return(
-                    <div key={city} style={{marginBottom:24}}>
-                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                        <h3 style={{margin:0,fontSize:15,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>{city}</h3>
-                        <span style={{fontSize:11,color:"#6B6B65",background:"#F4F4F0",padding:"2px 8px",borderRadius:6,fontWeight:600}}>{cvs.length}</span>
-                        <div style={{flex:1,height:1,background:"#E0E0D8"}}/>
+              <input value={citySearch} onChange={e=>setCitySearch(e.target.value)}
+                placeholder="Search cities..." style={{...inp,padding:"8px 12px",borderRadius:"8px 8px 0 0",borderBottom:"none"}}/>
+              {batchSelected.size<15&&(
+                <div style={{maxHeight:160,overflowY:"auto",border:"1.5px solid #D8D8D0",borderTop:"none",borderRadius:"0 0 8px 8px",background:"#FFFFFF"}}>
+                  {filteredCities.filter(c=>!batchSelected.has(c)).length===0
+                    ? <p style={{padding:"10px 12px",fontSize:13,color:"#A0A09A",margin:0}}>No cities found</p>
+                    : filteredCities.filter(c=>!batchSelected.has(c)).map(city=>(
+                      <div key={city} onClick={()=>toggleCity(city)}
+                        style={{padding:"8px 14px",fontSize:13,color:"#0A0A0A",cursor:"pointer",borderBottom:"1px solid #F4F4F0"}}
+                        onMouseEnter={e=>e.currentTarget.style.background="#EBF245"}
+                        onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                        {city}
+                        {venues.some(v=>v.city===city)&&<span style={{fontSize:11,color:"#6B6B65",marginLeft:6}}>({venues.filter(v=>v.city===city).length} saved)</span>}
                       </div>
-                      {cvs.map(dv=><DiscCard key={dv._id} dv={dv} savedIds={savedIds} venues={venues} saveDiscovered={saveDiscovered}/>)}
-                    </div>
-                  );
-                }):<>{discoveredVenues.map(dv=><DiscCard key={dv._id} dv={dv} savedIds={savedIds} venues={venues} saveDiscovered={saveDiscovered}/>)}</>;
-              })()}
+                    ))
+                  }
+                </div>
+              )}
             </div>
-          )}
-          {!isSearching&&!searchError&&discoveredVenues.length===0&&(
-            <div style={{textAlign:"center",padding:"48px 0",color:"#A0A09A"}}>
-              <p style={{fontSize:44,margin:"0 0 10px"}}>🍷</p>
-              <p style={{fontSize:16,fontFamily:"'Playfair Display',serif",color:"#3A3A35"}}>Search any city to discover venues</p>
-              <p style={{fontSize:12,maxWidth:340,margin:"6px auto 0",lineHeight:1.6}}>Use Batch Search to pick multiple cities at once — perfect for quarterly planning.</p>
+            <div>
+              <label style={{...lbl,display:"block",marginBottom:4}}>Venue Type</label>
+              <select value={discoverType} onChange={e=>setDiscoverType(e.target.value)} style={{...sel,width:"100%",padding:"10px 14px"}}>
+                {DISCOVER_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+              </select>
             </div>
-          )}
-        </div>
+            {isSearching&&batchProgress.total>1&&(
+              <div>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                  <span style={{fontSize:12,color:"#3A3A35",fontWeight:600}}>Searching {batchProgress.currentCity}...</span>
+                  <span style={{fontSize:12,color:"#6B6B65"}}>{batchProgress.current}/{batchProgress.total}</span>
+                </div>
+                <div style={{height:6,background:"#E0E0D8",borderRadius:3,overflow:"hidden"}}>
+                  <div style={{height:"100%",background:"#0A0A0A",borderRadius:3,width:`${(batchProgress.current/batchProgress.total)*100}%`,transition:"width 0.5s ease"}}/>
+                </div>
+              </div>
+            )}
+            <button onClick={discoverVenues} disabled={isSearching||batchSelected.size===0} style={{...btnP,opacity:isSearching||batchSelected.size===0?0.6:1,padding:"11px 0"}}>
+              {isSearching?`Searching ${batchProgress.current+1}/${batchProgress.total}...`:`Search ${batchSelected.size} ${batchSelected.size===1?"City":"Cities"}`}
+            </button>
+          </div>
+        )}
+        {!apiKey&&<p style={{margin:"10px 0 0",fontSize:12,color:"#C0392B",fontWeight:600}}>⚠ Set up your API key in Settings to enable search.</p>}
       </div>
+      <div style={{flex:1,overflowY:"auto",padding:"16px 28px"}}>
+        {isSearching&&discoveredVenues.length===0&&(
+          <div style={{padding:"32px 0",textAlign:"center"}}><Spinner/><p style={{color:"#6B6B65",fontSize:14,marginTop:12}}>Searching{batchProgress.currentCity?` ${batchProgress.currentCity}`:""}...</p></div>
+        )}
+        {searchError&&<div style={{background:"#FFF5F5",border:"1px solid #E8C4C4",borderRadius:10,padding:16,color:"#8B4444",fontSize:13,marginBottom:12}}>{searchError}</div>}
+        {discoveredVenues.length>0&&(
+          <div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+              <p style={{margin:0,fontSize:13,color:"#0A0A0A",fontWeight:700}}>{discoveredVenues.length} venues found{isSearching?" (searching...)":""}</p>
+              {savedIds.size>0&&<p style={{margin:0,fontSize:12,color:"#1A5C3A",fontWeight:700}}>{savedIds.size} saved ✓</p>}
+            </div>
+            {(()=>{
+              const cities=[...new Set(discoveredVenues.map(v=>v.city||"Unknown"))];
+              const multi=cities.length>1;
+              return multi?cities.map(city=>{
+                const cvs=discoveredVenues.filter(v=>v.city===city);
+                return(
+                  <div key={city} style={{marginBottom:24}}>
+                    <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                      <h3 style={{margin:0,fontSize:15,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>{city}</h3>
+                      <span style={{fontSize:11,color:"#6B6B65",background:"#F4F4F0",padding:"2px 8px",borderRadius:6,fontWeight:600}}>{cvs.length}</span>
+                      <div style={{flex:1,height:1,background:"#E0E0D8"}}/>
+                    </div>
+                    {cvs.map(dv=><DiscCard key={dv._id} dv={dv} savedIds={savedIds} venues={venues} saveDiscovered={saveDiscovered}/>)}
+                  </div>
+                );
+              }):<>{discoveredVenues.map(dv=><DiscCard key={dv._id} dv={dv} savedIds={savedIds} venues={venues} saveDiscovered={saveDiscovered}/>)}</>;
+            })()}
+          </div>
+        )}
+        {!isSearching&&!searchError&&discoveredVenues.length===0&&(
+          <div style={{textAlign:"center",padding:"48px 0",color:"#A0A09A"}}>
+            <p style={{fontSize:44,margin:"0 0 10px"}}>🍷</p>
+            <p style={{fontSize:16,fontFamily:"'Playfair Display',serif",color:"#3A3A35"}}>Search any city to discover venues</p>
+            <p style={{fontSize:12,maxWidth:340,margin:"6px auto 0",lineHeight:1.6}}>Use Batch Search to pick multiple cities at once — perfect for quarterly planning.</p>
+          </div>
+        )}
+      </div>
+    </div>
   );
-}
+});
+
+// ═══ MAIN APP ═══
 function VenueTracker() {
   const [venues, setVenues] = useState(loadVenues);
   const [search, setSearch] = useState("");
   const [filterRegion, setFilterRegion] = useState("All");
   const [filterSize, setFilterSize] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All");
-  const [filterVisited, setFilterVisited] = useState("All"); // "All" | "Yes" | "No"
+  const [filterVisited, setFilterVisited] = useState("All");
   const [filterPrivate, setFilterPrivate] = useState(false);
   const [filterAV, setFilterAV] = useState(false);
   const [filterDietary, setFilterDietary] = useState(false);
@@ -321,8 +376,8 @@ function VenueTracker() {
   const [showDiscover, setShowDiscover] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [compareIds, setCompareIds] = useState(new Set());
+  const [mode, setMode] = useState("tracker");
 
-  // Discover state
   const [discoverCity, setDiscoverCity] = useState("");
   const [discoverType, setDiscoverType] = useState(DISCOVER_TYPES[0].value);
   const [discoveredVenues, setDiscoveredVenues] = useState([]);
@@ -333,7 +388,6 @@ function VenueTracker() {
   const [batchCities, setBatchCities] = useState("");
   const [batchProgress, setBatchProgress] = useState({current:0,total:0,currentCity:""});
 
-  // AI Tools state
   const [aiModal, setAiModal] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiResult, setAiResult] = useState("");
@@ -342,35 +396,32 @@ function VenueTracker() {
   const [matchForm, setMatchForm] = useState({description:""});
   const [menuForm, setMenuForm] = useState({guestCount:20,dietaryNeeds:"",preferences:""});
   const [aiVenueCtx, setAiVenueCtx] = useState(null);
-  const [mode, setMode] = useState("tracker"); // "tracker" | "aitools"
 
   const [apiKey, setApiKey] = useState(()=>{try{return localStorage.getItem(API_KEY_STORAGE)||""}catch(e){return ""}});
 
-  // Persist venues
   useEffect(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify(venues))}catch(e){}},[venues]);
 
   const saveVenue = useCallback((v)=>{setVenues(p=>p.map(x=>x.id===v.id?v:x));setSelectedVenue(v);setIsEditing(false);},[]);
   const addVenue = useCallback((v)=>{setVenues(p=>[...p,v]);setShowAddForm(false);setSelectedVenue(v);},[]);
   const deleteVenue = useCallback((id)=>{setVenues(p=>p.filter(v=>v.id!==id));setSelectedVenue(null);},[]);
   const duplicateVenue = useCallback((v)=>{
-    const dupe = {...v, id:Date.now(), name:`${v.name} (Copy)`, status:"Prospect", visited:false, lastUsed:"", rating:0};
-    setVenues(p=>[...p,dupe]);
-    setSelectedVenue(dupe);
+    const d={...v,id:Date.now(),name:`${v.name} (Copy)`,status:"Prospect",visited:false,lastUsed:"",rating:0};
+    setVenues(p=>[...p,d]);setSelectedVenue(d);
   },[]);
 
   const filtered = useMemo(()=>{
-    let r = venues.filter(v=>{
-      if(search && !v.name.toLowerCase().includes(search.toLowerCase()) && !v.city.toLowerCase().includes(search.toLowerCase())) return false;
-      if(filterRegion!=="All" && v.region!==filterRegion) return false;
-      if(filterSize!=="All" && !v.eventSizes.includes(filterSize)) return false;
-      if(filterStatus!=="All" && v.status!==filterStatus) return false;
-      if(filterVisited==="Yes" && !v.visited) return false;
-      if(filterVisited==="No" && v.visited) return false;
-      if(filterPrivate && !v.privateRoom) return false;
-      if(filterAV && !v.av) return false;
-      if(filterDietary && !v.dietary) return false;
-      if(filterExclusivity>0 && v.exclusivity<filterExclusivity) return false;
-      if(v.pricePerHead>budgetMax && v.pricePerHead>0) return false;
+    let r=venues.filter(v=>{
+      if(search&&!v.name.toLowerCase().includes(search.toLowerCase())&&!v.city.toLowerCase().includes(search.toLowerCase())) return false;
+      if(filterRegion!=="All"&&v.region!==filterRegion) return false;
+      if(filterSize!=="All"&&!v.eventSizes.includes(filterSize)) return false;
+      if(filterStatus!=="All"&&v.status!==filterStatus) return false;
+      if(filterVisited==="Yes"&&!v.visited) return false;
+      if(filterVisited==="No"&&v.visited) return false;
+      if(filterPrivate&&!v.privateRoom) return false;
+      if(filterAV&&!v.av) return false;
+      if(filterDietary&&!v.dietary) return false;
+      if(filterExclusivity>0&&v.exclusivity<filterExclusivity) return false;
+      if(v.pricePerHead>budgetMax&&v.pricePerHead>0) return false;
       return true;
     });
     r.sort((a,b)=>{
@@ -385,41 +436,32 @@ function VenueTracker() {
   },[venues,search,filterRegion,filterSize,filterStatus,filterVisited,filterPrivate,filterAV,filterDietary,filterExclusivity,budgetMax,sortBy]);
 
   const stats = useMemo(()=>({
-    total:venues.length,
-    used:venues.filter(v=>v.status==="Used").length,
-    booked:venues.filter(v=>v.status==="Booked").length,
-    visited:venues.filter(v=>v.visited).length,
+    total:venues.length,used:venues.filter(v=>v.status==="Used").length,
+    booked:venues.filter(v=>v.status==="Booked").length,visited:venues.filter(v=>v.visited).length,
     regions:new Set(venues.filter(v=>v.region).map(v=>v.region)).size,
     avgPrice:venues.length?Math.round(venues.reduce((a,v)=>a+v.pricePerHead,0)/venues.length):0,
   }),[venues]);
 
-  // ── Discover ──
-  const searchOneCity = useCallback(async(city, vtype)=>{
-    const res = await fetch("/api/api-proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
+  const searchOneCity = useCallback(async(city,vtype)=>{
+    const res=await fetch("/api/api-proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({
       apiKey,model:"claude-sonnet-4-20250514",max_tokens:8192,
       messages:[{role:"user",content:`List 15-20 real, currently operating ${vtype} in ${city} suited for corporate dinners and executive events.
 
 Return ONLY a raw JSON array. No markdown, no backticks, no explanation.
 
-Each object must have exactly these fields:
-{"name":"Restaurant Name","cuisine":"Type","priceRange":"$$$$","estimatedPricePerHead":150,"privateRoom":true,"capacity":"10-40 guests","description":"1-2 sentences about why it's great for corporate events","neighborhood":"Area/District","knownFor":"Signature feature, award, or notable quality","website":"https://... or empty string if unknown","sources":"Known from Yelp, TripAdvisor, Google, OpenTable, Michelin, etc."}
+Each object: {"name":"","cuisine":"","priceRange":"$$$$","estimatedPricePerHead":150,"privateRoom":true,"capacity":"10-40 guests","description":"","neighborhood":"","knownFor":"","website":"https://... or empty string","sources":""}
 
-IMPORTANT RULES:
-- Only include REAL restaurants that currently exist
-- For the website field: include the restaurant's actual website URL if you are confident it is correct, otherwise use an empty string — do NOT guess
-- Return 15-20 venues
-- Output ONLY the JSON array, nothing else`}]
+Only REAL restaurants. Website only if confident. Output ONLY the JSON array.`}]
     })});
-    if(!res.ok){const t=await res.text();if(res.status===401)throw new Error("Invalid API key.");throw new Error(`API error ${res.status}`);}
+    if(!res.ok){if(res.status===401)throw new Error("Invalid API key.");throw new Error(`API error ${res.status}`);}
     const data=await res.json();
     const txt=data.content.filter(b=>b.type==="text").map(b=>b.text).join("\n");
-    if(!txt.trim()) throw new Error(`No results for ${city}`);
     const clean=txt.replace(/```json\s*/g,"").replace(/```\s*/g,"").trim();
     let parsed=null;
     try{parsed=JSON.parse(clean)}catch(e){}
     if(!parsed){const m=clean.match(/\[\s*\{[\s\S]*\}\s*\]/);if(m){try{parsed=JSON.parse(m[0])}catch(e){}}}
     if(!parsed){const s=clean.indexOf("["),e=clean.lastIndexOf("]");if(s!==-1&&e>s){try{parsed=JSON.parse(clean.substring(s,e+1))}catch(e){}}}
-    if(!parsed||!Array.isArray(parsed)||parsed.length===0) throw new Error(`Could not parse results for ${city}`);
+    if(!parsed||!Array.isArray(parsed)||!parsed.length) throw new Error(`Could not parse results for ${city}`);
     return parsed.map((v,i)=>({
       name:v.name||"Unknown",cuisine:v.cuisine||"",priceRange:v.priceRange||"$$$",
       estimatedPricePerHead:v.estimatedPricePerHead||0,privateRoom:v.privateRoom!==false,
@@ -431,9 +473,7 @@ IMPORTANT RULES:
 
   const discoverVenues = useCallback(async()=>{
     if(!apiKey){setShowSettings(true);return;}
-    const cities = searchMode==="batch"
-      ? batchCities.split(/[,\n]/).map(c=>c.trim()).filter(Boolean)
-      : [discoverCity.trim()];
+    const cities=searchMode==="batch"?batchCities.split(/[,\n]/).map(c=>c.trim()).filter(Boolean):[discoverCity.trim()];
     if(!cities.length||!cities[0]) return;
     setIsSearching(true);setSearchError("");setDiscoveredVenues([]);setSavedIds(new Set());
     setBatchProgress({current:0,total:cities.length,currentCity:cities[0]});
@@ -445,17 +485,16 @@ IMPORTANT RULES:
       catch(err){errors.push(city);}
     }
     setBatchProgress(p=>({...p,current:cities.length}));
-    if(errors.length>0) setSearchError(`Completed with errors. Could not search: ${errors.join(", ")}`);
+    if(errors.length) setSearchError(`Completed with errors. Could not search: ${errors.join(", ")}`);
     setIsSearching(false);
   },[discoverCity,discoverType,apiKey,searchMode,batchCities,searchOneCity]);
 
   const saveDiscovered = useCallback((dv)=>{
-    const city = dv.city||discoverCity.trim();
+    const city=dv.city||discoverCity.trim();
     setVenues(p=>[...p,{
       id:Date.now()+Math.random(),name:dv.name,city,region:guessRegion(city),
-      eventSizes:[],pricePerHead:dv.estimatedPricePerHead||0,
-      privateRoom:dv.privateRoom||false,av:false,dietary:false,
-      exclusivity:dv.priceRange==="$$$$$"?5:dv.priceRange==="$$$$"?4:3,
+      eventSizes:[],pricePerHead:dv.estimatedPricePerHead||0,privateRoom:dv.privateRoom||false,
+      av:false,dietary:false,exclusivity:dv.priceRange==="$$$$$"?5:dv.priceRange==="$$$$"?4:3,
       status:"Prospect",visited:false,website:dv.website||"",
       notes:`${dv.description||""}\n\nNeighborhood: ${dv.neighborhood||"—"}\nKnown for: ${dv.knownFor||"—"}\nCuisine: ${dv.cuisine||"—"}\nCapacity: ${dv.capacity||"—"}${dv.sources?`\nFound on: ${dv.sources}`:""}`.trim(),
       contact:"",phone:"",lastUsed:"",rating:0,
@@ -477,892 +516,9 @@ IMPORTANT RULES:
     setCompareIds(p=>{const n=new Set(p);if(n.has(id))n.delete(id);else if(n.size<5)n.add(id);return n;});
   },[]);
 
-  // ── Venue photo fetcher ──
-  const fetchVenuePhoto = useCallback(async (name, city) => {
-    const key = `${name}-${city}`;
-    if (photoCache[key]) return photoCache[key];
-    try {
-      const query = `${name} ${city} restaurant interior dining`;
-      const res = await fetch(`${PHOTOS_PROXY}?query=${encodeURIComponent(query)}&per_page=1`);
-      console.log(`[Photo] ${name}: status ${res.status}`);
-      if (!res.ok) { console.warn(`[Photo] ${name}: failed with ${res.status}`); return null; }
-      const data = await res.json();
-      console.log(`[Photo] ${name}: response`, data);
-      const url = data?.photos?.[0]?.src?.landscape || data?.photos?.[0]?.src?.large || null;
-      console.log(`[Photo] ${name}: url =`, url);
-      if (url) photoCache[key] = url;
-      return url;
-    } catch(e) {
-      console.error(`[Photo] ${name}: error`, e);
-      return null;
-    }
-  }, []);
-
-
   const callAI = async(prompt,maxTokens=4096)=>{
     if(!apiKey){setShowSettings(true);return null;}
     const res=await fetch("/api/api-proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({apiKey,model:"claude-sonnet-4-20250514",max_tokens:maxTokens,messages:[{role:"user",content:prompt}]})});
     if(!res.ok) throw new Error(`API error ${res.status}`);
     const data=await res.json();
-    return data.content.filter(b=>b.type==="text").map(b=>b.text).join("\n");
-  };
-
-  const generateEmail = async(venue)=>{
-    setAiLoading(true);setAiResult("");
-    try{const r=await callAI(`Draft a professional but warm outreach email to book a private event at this restaurant. Write 3 versions: Formal, Friendly, and Brief.\n\nVenue: ${venue.name} in ${venue.city}${venue.website?`\nWebsite: ${venue.website}`:""}\nEvent date: ${emailForm.date||"TBD"}\nGuest count: ${emailForm.guestCount}\nEvent type: ${emailForm.eventType}\nNotes: ${emailForm.notes||"None"}\nContact: ${venue.contact||"Events Manager"}\n\nFormat with "--- VERSION 1: FORMAL ---", "--- VERSION 2: FRIENDLY ---", "--- VERSION 3: BRIEF ---" headers. Sign off as "[Your Name], Field Marketing"`);setAiResult(r);}
-    catch(err){setAiResult("Error: "+err.message);}
-    finally{setAiLoading(false);}
-  };
-
-  const generateBrief = async()=>{
-    setAiLoading(true);setAiResult("");
-    const cityVenues=venues.filter(v=>v.city.toLowerCase().includes(briefForm.city.toLowerCase()));
-    try{const r=await callAI(`Create a comprehensive event brief for a field marketing dinner.\n\nAccount: ${briefForm.accountName}\nCity: ${briefForm.city}\nGuest count: ${briefForm.guestCount}\nTotal budget: $${briefForm.budget}\nEvent type: ${briefForm.eventType}\nGoals: ${briefForm.goals||"Build relationships, generate pipeline"}\n\n${cityVenues.length>0?`Venues in our tracker for this city:\n${cityVenues.map(v=>`- ${v.name}: $${v.pricePerHead}/head, ${v.privateRoom?"private room":"no private room"}, status: ${v.status}, rating: ${v.rating}/5${v.website?`, website: ${v.website}`:""}`).join("\n")}`:"No venues in tracker for this city yet."}\n\nCreate a brief with: 1. Event Overview, 2. Target Attendees, 3. Venue Recommendations (top 3 from tracker if available + 2 new suggestions), 4. Suggested Menu, 5. Budget Breakdown, 6. Run of Show, 7. Follow-up Plan, 8. Success Metrics`);setAiResult(r);}
-    catch(err){setAiResult("Error: "+err.message);}
-    finally{setAiLoading(false);}
-  };
-
-  const generateComparison = async()=>{
-    const sel=venues.filter(v=>compareIds.has(v.id));
-    if(sel.length<2) return;
-    setAiLoading(true);setAiResult("");
-    try{const r=await callAI(`Create a detailed side-by-side venue comparison for stakeholder review.\n\nVenues:\n${sel.map((v,i)=>`VENUE ${i+1}: ${v.name}\n- City: ${v.city} (${v.region})\n- Price/head: $${v.pricePerHead}\n- Private room: ${v.privateRoom?"Yes":"No"}\n- AV: ${v.av?"Yes":"No"}\n- Dietary: ${v.dietary?"Yes":"No"}\n- Exclusivity: ${v.exclusivity}/5\n- Rating: ${v.rating}/5\n- Status: ${v.status}\n- Visited: ${v.visited?"Yes":"No"}\n- Website: ${v.website||"Not listed"}\n- Notes: ${v.notes||"None"}`).join("\n\n")}\n\nInclude: 1. Executive Summary, 2. Comparison Table, 3. Detailed Analysis per venue, 4. Cost comparison for 20 and 40 guests, 5. Recommendation with ranking, 6. Booking Notes`);setAiResult(r);}
-    catch(err){setAiResult("Error: "+err.message);}
-    finally{setAiLoading(false);}
-  };
-
-  const generateMatch = async()=>{
-    setAiLoading(true);setAiResult("");
-    try{const r=await callAI(`You are a field marketing venue expert. Recommend the best venues from our tracker for this event.\n\nEvent: ${matchForm.description}\n\nOur venues:\n${venues.map(v=>`- ${v.name} (${v.city}, ${v.region}): $${v.pricePerHead}/head | Private: ${v.privateRoom?"Y":"N"} | AV: ${v.av?"Y":"N"} | Exclusivity: ${v.exclusivity}/5 | Rating: ${v.rating}/5 | Status: ${v.status} | Visited: ${v.visited?"Y":"N"} | Sizes: ${v.eventSizes.join(", ")}${v.website?` | Web: ${v.website}`:""}`).join("\n")}\n\nInclude: 1. Best Matches (top 3-5 with specific reasons), 2. Gaps (if nothing fits), 3. Logistics Tips`);setAiResult(r);}
-    catch(err){setAiResult("Error: "+err.message);}
-    finally{setAiLoading(false);}
-  };
-
-  const generateMenu = async(venue)=>{
-    setAiLoading(true);setAiResult("");
-    try{const r=await callAI(`Create a detailed menu plan for a corporate event.\n\nVenue: ${venue.name} in ${venue.city}${venue.website?`\nWebsite: ${venue.website}`:""}\nPrice/head: $${venue.pricePerHead}\nGuest count: ${menuForm.guestCount}\nDietary needs: ${menuForm.dietaryNeeds||"Mix — some vegetarian, potential gluten-free"}\nPreferences: ${menuForm.preferences||"Upscale corporate dining"}\n\nInclude: 1. Pre-dinner cocktail hour, 2. 3-course menu with options, 3. Dietary accommodations, 4. Wine pairings, 5. Estimated cost breakdown, 6. Questions to ask the venue, 7. Things to confirm (minimums, fees, etc.)`);setAiResult(r);}
-    catch(err){setAiResult("Error: "+err.message);}
-    finally{setAiLoading(false);}
-  };
-
-  // ── Components ──
-
-  const AiModal = () => {
-    if(!aiModal) return null;
-    const titles={email:"Draft Outreach Email",brief:"Event Brief Generator",compare:"Venue Comparison Report",match:"Smart Venue Matching",menu:"Dietary & Menu Planner"};
-    return(
-      <div style={{position:"fixed",inset:0,background:"rgba(44,38,34,0.5)",zIndex:250,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}
-        onClick={e=>{if(e.target===e.currentTarget){setAiModal(null);setAiResult("");}}}>
-        <div style={{background:"#FDFCFA",borderRadius:16,width:720,maxHeight:"90vh",display:"flex",flexDirection:"column",boxShadow:"0 20px 60px rgba(0,0,0,0.2)"}}>
-          <div style={{padding:"24px 32px",borderBottom:"1px solid #E8E2D9",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-            <h2 style={{margin:0,fontSize:20,fontFamily:"'Playfair Display',serif",color:"#2C2622"}}>{titles[aiModal]}</h2>
-            <button onClick={()=>{setAiModal(null);setAiResult("");}} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#A09889"}}>✕</button>
-          </div>
-          <div style={{padding:"24px 32px",overflowY:"auto",flex:1}}>
-            {aiModal==="email"&&!aiResult&&(
-              <div style={{display:"grid",gap:14}}>
-                <p style={{fontSize:14,color:"#5A5348",margin:0}}>Generating email for <strong>{aiVenueCtx?.name}</strong></p>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                  <div><label style={lbl}>Event Date</label><input type="date" value={emailForm.date} onChange={e=>setEmailForm({...emailForm,date:e.target.value})} style={{...inp,marginTop:4}}/></div>
-                  <div><label style={lbl}>Guest Count</label><input type="number" value={emailForm.guestCount} onChange={e=>setEmailForm({...emailForm,guestCount:+e.target.value})} style={{...inp,marginTop:4}}/></div>
-                </div>
-                <div><label style={lbl}>Event Type</label>
-                  <select value={emailForm.eventType} onChange={e=>setEmailForm({...emailForm,eventType:e.target.value})} style={{...sel,marginTop:4,width:"100%"}}>
-                    {["Executive dinner","Client appreciation dinner","Team celebration","Product launch event","Networking cocktail reception","CISO/CIO roundtable dinner","Prospect dinner"].map(o=><option key={o}>{o}</option>)}
-                  </select></div>
-                <div><label style={lbl}>Additional Notes</label><textarea value={emailForm.notes} onChange={e=>setEmailForm({...emailForm,notes:e.target.value})} rows={2} placeholder="Any specific requests..." style={{...inp,marginTop:4}}/></div>
-                <button onClick={()=>generateEmail(aiVenueCtx)} disabled={aiLoading} style={{...btnP,opacity:aiLoading?.6:1}}>Generate 3 Email Versions</button>
-              </div>
-            )}
-            {aiModal==="brief"&&!aiResult&&(
-              <div style={{display:"grid",gap:14}}>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-                  <div><label style={lbl}>Account / Client Name</label><input value={briefForm.accountName} onChange={e=>setBriefForm({...briefForm,accountName:e.target.value})} placeholder="e.g. Stripe, Databricks..." style={{...inp,marginTop:4}}/></div>
-                  <div><label style={lbl}>City</label><input value={briefForm.city} onChange={e=>setBriefForm({...briefForm,city:e.target.value})} placeholder="e.g. Austin" style={{...inp,marginTop:4}}/></div>
-                </div>
-                <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:12}}>
-                  <div><label style={lbl}>Guest Count</label><input type="number" value={briefForm.guestCount} onChange={e=>setBriefForm({...briefForm,guestCount:+e.target.value})} style={{...inp,marginTop:4}}/></div>
-                  <div><label style={lbl}>Budget ($)</label><input type="number" value={briefForm.budget} onChange={e=>setBriefForm({...briefForm,budget:+e.target.value})} style={{...inp,marginTop:4}}/></div>
-                  <div><label style={lbl}>Event Type</label>
-                    <select value={briefForm.eventType} onChange={e=>setBriefForm({...briefForm,eventType:e.target.value})} style={{...sel,marginTop:4,width:"100%"}}>
-                      {["Client appreciation dinner","Executive roundtable","Product launch","Networking event","CISO dinner","Prospect dinner"].map(o=><option key={o}>{o}</option>)}
-                    </select></div>
-                </div>
-                <div><label style={lbl}>Goals & Context</label><textarea value={briefForm.goals} onChange={e=>setBriefForm({...briefForm,goals:e.target.value})} rows={2} placeholder="What do you want to accomplish?" style={{...inp,marginTop:4}}/></div>
-                <button onClick={generateBrief} disabled={aiLoading||!briefForm.accountName||!briefForm.city} style={{...btnP,opacity:aiLoading||!briefForm.accountName||!briefForm.city?.6:1}}>Generate Event Brief</button>
-              </div>
-            )}
-            {aiModal==="match"&&!aiResult&&(
-              <div style={{display:"grid",gap:14}}>
-                <p style={{fontSize:14,color:"#5A5348",margin:0}}>Describe your event and AI will recommend from your {venues.length} tracked venues.</p>
-                <div><label style={lbl}>Describe Your Event</label><textarea value={matchForm.description} onChange={e=>setMatchForm({...matchForm,description:e.target.value})} rows={4} placeholder="e.g. CISO dinner in Chicago, 15 guests, $200/head, must have private room, high-end preferred." style={{...inp,marginTop:4}}/></div>
-                <button onClick={generateMatch} disabled={aiLoading||!matchForm.description} style={{...btnP,opacity:aiLoading||!matchForm.description?.6:1}}>Find Best Matches</button>
-              </div>
-            )}
-            {aiModal==="compare"&&!aiResult&&(
-              <div>
-                <p style={{fontSize:14,color:"#5A5348",margin:"0 0 12px"}}>Comparing {compareIds.size} venues:</p>
-                <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
-                  {venues.filter(v=>compareIds.has(v.id)).map(v=><Tag key={v.id} filled color="#8B7355">{v.name} — {v.city}</Tag>)}
-                </div>
-                <button onClick={generateComparison} disabled={aiLoading} style={{...btnP,opacity:aiLoading?.6:1}}>Generate Comparison Report</button>
-              </div>
-            )}
-            {aiModal==="menu"&&!aiResult&&(
-              <div style={{display:"grid",gap:14}}>
-                <p style={{fontSize:14,color:"#5A5348",margin:0}}>Menu planning for <strong>{aiVenueCtx?.name}</strong> (${aiVenueCtx?.pricePerHead}/head)</p>
-                <div><label style={lbl}>Guest Count</label><input type="number" value={menuForm.guestCount} onChange={e=>setMenuForm({...menuForm,guestCount:+e.target.value})} style={{...inp,marginTop:4,maxWidth:140}}/></div>
-                <div><label style={lbl}>Dietary Needs</label><textarea value={menuForm.dietaryNeeds} onChange={e=>setMenuForm({...menuForm,dietaryNeeds:e.target.value})} rows={2} placeholder="e.g. 3 vegetarian, 1 gluten-free, 1 nut allergy..." style={{...inp,marginTop:4}}/></div>
-                <div><label style={lbl}>Preferences</label><textarea value={menuForm.preferences} onChange={e=>setMenuForm({...menuForm,preferences:e.target.value})} rows={2} placeholder="e.g. Japanese preferred, no raw fish, impressive dessert..." style={{...inp,marginTop:4}}/></div>
-                <button onClick={()=>generateMenu(aiVenueCtx)} disabled={aiLoading} style={{...btnP,opacity:aiLoading?.6:1}}>Generate Menu Plan</button>
-              </div>
-            )}
-            {aiLoading&&(
-              <div style={{padding:"32px 0",textAlign:"center"}}>
-                <Spinner/>
-                <p style={{color:"#8B8279",fontSize:14,marginTop:16}}>AI is working on it...</p>
-              </div>
-            )}
-            {aiResult&&(
-              <div>
-                <div style={{background:"#fff",border:"1px solid #E8E2D9",borderRadius:10,padding:24,fontSize:14,color:"#3D3832",lineHeight:1.7,whiteSpace:"pre-wrap",maxHeight:480,overflowY:"auto"}}>{aiResult}</div>
-                <div style={{display:"flex",gap:12,marginTop:16}}>
-                  <button onClick={()=>navigator.clipboard.writeText(aiResult)} style={btnP}>📋 Copy</button>
-                  <button onClick={()=>setAiResult("")} style={btnS}>← Back</button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const SettingsModal = () => {
-    const [tmp,setTmp]=useState(apiKey);
-    const [testRes,setTestRes]=useState("");
-    const [testing,setTesting]=useState(false);
-    const test=async()=>{
-      if(!tmp.trim()){setTestRes("❌ No key entered");return;}
-      setTesting(true);setTestRes("Testing...");
-      try{
-        const r=await fetch("/api/api-proxy",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({apiKey:tmp.trim(),model:"claude-sonnet-4-20250514",max_tokens:50,messages:[{role:"user",content:"Say hello in 3 words"}]})});
-        setTestRes(r.ok?"✅ Key is valid!":(`❌ Error ${r.status}`));
-      }catch(e){setTestRes("❌ Network error: "+e.message);}
-      finally{setTesting(false);}
-    };
-    return(
-      <div style={{position:"fixed",inset:0,background:"rgba(44,38,34,0.45)",zIndex:300,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}
-        onClick={e=>{if(e.target===e.currentTarget)setShowSettings(false);}}>
-        <div style={{background:"#FDFCFA",borderRadius:16,width:520,padding:36,boxShadow:"0 20px 60px rgba(0,0,0,0.15)"}}>
-          <h2 style={{margin:"0 0 8px",fontFamily:"'Playfair Display',serif",color:"#2C2622",fontSize:22}}>Settings</h2>
-          <p style={{margin:"0 0 24px",fontSize:14,color:"#8B8279",lineHeight:1.5}}>The Discover and AI features use the Anthropic API. Get a key from <a href="https://console.anthropic.com/" target="_blank" style={{color:"#8B7355"}}>console.anthropic.com</a>.</p>
-          <label style={{...lbl,marginBottom:6,display:"block"}}>Anthropic API Key</label>
-          <input type="password" value={tmp} onChange={e=>setTmp(e.target.value)} placeholder="sk-ant-..." style={{...inp,fontSize:14,padding:"12px 16px",marginBottom:4}}/>
-          <p style={{fontSize:12,color:"#A09889",margin:"0 0 16px"}}>Stored locally in this browser only.</p>
-          {testRes&&<div style={{padding:12,borderRadius:8,marginBottom:16,fontSize:13,background:testRes.startsWith("✅")?"#F0F9F4":testRes.startsWith("❌")?"#FFF5F5":"#FFF9EE",color:testRes.startsWith("✅")?"#2D6A4F":testRes.startsWith("❌")?"#8B4444":"#8B7355",border:`1px solid ${testRes.startsWith("✅")?"#B7E4C7":testRes.startsWith("❌")?"#E8C4C4":"#E8D9B8"}`}}>{testRes}</div>}
-          <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-            <button onClick={()=>{const t=tmp.trim();setApiKey(t);try{localStorage.setItem(API_KEY_STORAGE,t)}catch(e){}setShowSettings(false);}} style={btnP}>Save Key</button>
-            <button onClick={test} disabled={testing} style={{...btnS,opacity:testing?.6:1}}>{testing?"Testing...":"Test Key"}</button>
-            <button onClick={()=>setShowSettings(false)} style={btnS}>Cancel</button>
-            {apiKey&&<button onClick={()=>{setApiKey("");setTmp("");try{localStorage.removeItem(API_KEY_STORAGE)}catch(e){}}} style={{...btnS,color:"#C0392B",borderColor:"#C0392B",marginLeft:"auto"}}>Remove Key</button>}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const DetailPanel = ({venue}) => {
-    const [ed,setEd]=useState({...venue});
-    const editing=isEditing;
-    // Reset edit state when venue changes
-    useEffect(()=>{setEd({...venue});},[venue.id]);
-    return(
-      <div style={{position:"fixed",top:0,right:0,width:520,height:"100vh",background:"#FDFCFA",borderLeft:"1px solid #E8E2D9",zIndex:100,overflowY:"auto",boxShadow:"-8px 0 40px rgba(0,0,0,0.08)",animation:"slideInRight 0.25s ease"}}>
-        <div style={{padding:"28px 32px",borderBottom:"1px solid #E8E2D9",display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
-          <div style={{flex:1}}>
-            {editing?<input value={ed.name} onChange={e=>setEd({...ed,name:e.target.value})} style={{...inp,fontSize:20,fontWeight:600,fontFamily:"'Playfair Display',serif"}}/>
-              :<h2 style={{margin:0,fontSize:22,fontFamily:"'Playfair Display',serif",color:"#2C2622",fontWeight:600}}>{venue.name}</h2>}
-            {editing?(
-              <div style={{display:"flex",gap:8,marginTop:8}}>
-                <input value={ed.city} onChange={e=>setEd({...ed,city:e.target.value,region:guessRegion(e.target.value)||ed.region})} placeholder="City" style={{...inp,width:140}}/>
-                <select value={ed.region} onChange={e=>setEd({...ed,region:e.target.value})} style={sel}>
-                  <option value="">Region</option>
-                  {Object.keys(REGIONS).map(r=><option key={r}>{r}</option>)}
-                </select>
-              </div>
-            ):<p style={{margin:"4px 0 0",fontSize:14,color:"#8B8279"}}>{venue.city}{venue.region?` · ${venue.region}`:""}</p>}
-          </div>
-          <button onClick={()=>{setSelectedVenue(null);setIsEditing(false);}} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",color:"#A09889",padding:4,lineHeight:1}}>✕</button>
-        </div>
-        <div style={{padding:"24px 32px"}}>
-          {/* Status + Visited row */}
-          <div style={{display:"flex",gap:12,marginBottom:20,flexWrap:"wrap",alignItems:"center"}}>
-            {editing?<select value={ed.status} onChange={e=>setEd({...ed,status:e.target.value})} style={sel}>{STATUSES.map(s=><option key={s}>{s}</option>)}</select>
-              :<Tag filled color={STATUS_COLORS[venue.status]}>{venue.status}</Tag>}
-            <label style={{display:"flex",alignItems:"center",gap:8,cursor:"pointer",fontSize:13,color:"#5A5348",padding:"6px 14px",borderRadius:20,border:`1.5px solid ${(editing?ed.visited:venue.visited)?"#2D8659":"#D5CEC4"}`,background:(editing?ed.visited:venue.visited)?"#F0F9F4":"transparent",transition:"all 0.2s"}}>
-              <input type="checkbox" checked={editing?ed.visited:venue.visited} onChange={e=>editing&&setEd({...ed,visited:e.target.checked})} disabled={!editing} style={{accentColor:"#2D8659",width:14,height:14}}/>
-              <span style={{fontWeight:600,color:(editing?ed.visited:venue.visited)?"#2D8659":"#8B8279"}}>Visited</span>
-            </label>
-            {venue.privateRoom&&<Tag color="#5B8A72">Private Room</Tag>}
-            {venue.av&&<Tag color="#4A6FA5">AV Ready</Tag>}
-            {venue.dietary&&<Tag color="#7B68AE">Dietary Flex</Tag>}
-          </div>
-
-          {/* Website */}
-          <div style={{marginBottom:20}}>
-            <label style={lbl}>Website</label>
-            {editing?<input value={ed.website||""} onChange={e=>setEd({...ed,website:e.target.value})} placeholder="https://..." style={{...inp,marginTop:4}}/>
-              :<div style={{marginTop:4}}>
-                {venue.website?<a href={venue.website} target="_blank" rel="noopener noreferrer" style={{fontSize:13,color:"#4A6FA5",textDecoration:"none",display:"inline-flex",alignItems:"center",gap:4}}>🔗 {venue.website}</a>
-                  :<span style={{fontSize:13,color:"#A09889"}}>—</span>}
-              </div>}
-          </div>
-
-          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:20,marginBottom:24}}>
-            <div>
-              <label style={lbl}>Price / Head</label>
-              {editing?<input type="number" value={ed.pricePerHead} onChange={e=>setEd({...ed,pricePerHead:+e.target.value})} style={{...inp,marginTop:4}}/>
-                :<p style={{margin:"4px 0 0",fontSize:24,fontWeight:600,color:"#2C2622",fontFamily:"'Playfair Display',serif"}}>${venue.pricePerHead}</p>}
-            </div>
-            <div>
-              <label style={lbl}>Exclusivity</label>
-              <div style={{marginTop:6}}><Stars rating={editing?ed.exclusivity:venue.exclusivity} interactive={editing} onRate={r=>setEd({...ed,exclusivity:r})} size={20}/></div>
-            </div>
-            <div>
-              <label style={lbl}>Your Rating</label>
-              <div style={{marginTop:6}}><Stars rating={editing?ed.rating:venue.rating} interactive={editing} onRate={r=>setEd({...ed,rating:r})} size={20}/></div>
-            </div>
-            <div>
-              <label style={lbl}>Last Used</label>
-              {editing?<input type="date" value={ed.lastUsed} onChange={e=>setEd({...ed,lastUsed:e.target.value})} style={{...inp,marginTop:4}}/>
-                :<p style={{margin:"4px 0 0",fontSize:15,color:"#3D3832"}}>{venue.lastUsed||"—"}</p>}
-            </div>
-          </div>
-
-          <div style={{marginBottom:24}}>
-            <label style={lbl}>Event Sizes</label>
-            {editing?(
-              <div style={{display:"flex",gap:8,marginTop:8,flexWrap:"wrap"}}>
-                {EVENT_SIZES.map(sz=>(
-                  <label key={sz} style={{display:"flex",alignItems:"center",gap:6,fontSize:13,cursor:"pointer",color:"#5A5348"}}>
-                    <input type="checkbox" checked={ed.eventSizes.includes(sz)} onChange={e=>setEd({...ed,eventSizes:e.target.checked?[...ed.eventSizes,sz]:ed.eventSizes.filter(s=>s!==sz)})}/> {sz}
-                  </label>
-                ))}
-              </div>
-            ):(
-              <div style={{display:"flex",gap:6,marginTop:6,flexWrap:"wrap"}}>
-                {venue.eventSizes.length?venue.eventSizes.map(s=><Tag key={s} color="#8B7355">{s}</Tag>):<span style={{fontSize:13,color:"#A09889"}}>—</span>}
-              </div>
-            )}
-          </div>
-
-          {editing&&(
-            <div style={{display:"flex",gap:16,marginBottom:24,flexWrap:"wrap"}}>
-              <Toggle checked={ed.privateRoom} onChange={v=>setEd({...ed,privateRoom:v})} label="Private Room"/>
-              <Toggle checked={ed.av} onChange={v=>setEd({...ed,av:v})} label="AV Ready"/>
-              <Toggle checked={ed.dietary} onChange={v=>setEd({...ed,dietary:v})} label="Dietary Flex"/>
-            </div>
-          )}
-
-          <div style={{marginBottom:20}}>
-            <label style={lbl}>Contact</label>
-            {editing?(
-              <div style={{display:"flex",gap:8,marginTop:6}}>
-                <input value={ed.contact} onChange={e=>setEd({...ed,contact:e.target.value})} placeholder="Name" style={{...inp,width:"50%"}}/>
-                <input value={ed.phone} onChange={e=>setEd({...ed,phone:e.target.value})} placeholder="Phone" style={{...inp,width:"50%"}}/>
-              </div>
-            ):<p style={{margin:"4px 0 0",fontSize:14,color:"#3D3832"}}>{venue.contact?`${venue.contact}${venue.phone?` · ${venue.phone}`:""}`:""||"—"}</p>}
-          </div>
-
-          <div style={{marginBottom:28}}>
-            <label style={lbl}>Notes</label>
-            {editing?<textarea value={ed.notes} onChange={e=>setEd({...ed,notes:e.target.value})} rows={4} style={{...inp,marginTop:6,resize:"vertical"}}/>
-              :<p style={{margin:"6px 0 0",fontSize:14,color:"#5A5348",lineHeight:1.6,whiteSpace:"pre-line"}}>{venue.notes||"—"}</p>}
-          </div>
-
-          <div style={{display:"flex",gap:10,flexWrap:"wrap"}}>
-            {editing?(
-              <React.Fragment>
-                <button onClick={()=>saveVenue(ed)} style={btnP}>Save Changes</button>
-                <button onClick={()=>setIsEditing(false)} style={btnS}>Cancel</button>
-              </React.Fragment>
-            ):(
-              <React.Fragment>
-                <button onClick={()=>setIsEditing(true)} style={btnP}>Edit</button>
-                <button onClick={()=>{setAiVenueCtx(venue);setAiModal("email");}} style={btnS}>✉ Email</button>
-                <button onClick={()=>{setAiVenueCtx(venue);setAiModal("menu");}} style={btnS}>🍽 Menu</button>
-                <button onClick={()=>duplicateVenue(venue)} style={btnS}>⧉ Duplicate</button>
-                <button onClick={()=>{if(confirm("Delete this venue?"))deleteVenue(venue.id);}} style={{...btnS,color:"#C0392B",borderColor:"#C0392B"}}>Delete</button>
-              </React.Fragment>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const AddForm = () => {
-    const [nv,setNv]=useState(emptyVenue());
-    return(
-      <div style={{position:"fixed",inset:0,background:"rgba(44,38,34,0.45)",zIndex:200,display:"flex",alignItems:"center",justifyContent:"center",backdropFilter:"blur(4px)"}}
-        onClick={e=>{if(e.target===e.currentTarget)setShowAddForm(false);}}>
-        <div style={{background:"#FDFCFA",borderRadius:16,width:560,maxHeight:"88vh",overflowY:"auto",padding:36,boxShadow:"0 20px 60px rgba(0,0,0,0.15)"}}>
-          <h2 style={{margin:"0 0 24px",fontFamily:"'Playfair Display',serif",color:"#2C2622",fontSize:24}}>Add New Venue</h2>
-          <div style={{display:"grid",gap:16}}>
-            <input value={nv.name} onChange={e=>setNv({...nv,name:e.target.value})} placeholder="Venue name" style={{...inp,fontSize:16}}/>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <input value={nv.city} onChange={e=>setNv({...nv,city:e.target.value,region:guessRegion(e.target.value)||nv.region})} placeholder="City" style={inp}/>
-              <select value={nv.region} onChange={e=>setNv({...nv,region:e.target.value})} style={sel}>
-                <option value="">Select Region</option>
-                {Object.keys(REGIONS).map(r=><option key={r}>{r}</option>)}
-              </select>
-            </div>
-            <input value={nv.website||""} onChange={e=>setNv({...nv,website:e.target.value})} placeholder="Website (https://...)" style={inp}/>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <div><label style={{...lbl,marginBottom:4,display:"block"}}>Price / Head ($)</label><input type="number" value={nv.pricePerHead||""} onChange={e=>setNv({...nv,pricePerHead:+e.target.value})} style={inp}/></div>
-              <div><label style={{...lbl,marginBottom:4,display:"block"}}>Status</label><select value={nv.status} onChange={e=>setNv({...nv,status:e.target.value})} style={sel}>{STATUSES.map(s=><option key={s}>{s}</option>)}</select></div>
-            </div>
-            <label style={{display:"flex",alignItems:"center",gap:10,cursor:"pointer",fontSize:13,color:"#5A5348",padding:"10px 14px",borderRadius:8,border:`1.5px solid ${nv.visited?"#2D8659":"#D5CEC4"}`,background:nv.visited?"#F0F9F4":"transparent"}}>
-              <input type="checkbox" checked={nv.visited} onChange={e=>setNv({...nv,visited:e.target.checked})} style={{accentColor:"#2D8659",width:14,height:14}}/>
-              <span style={{fontWeight:600,color:nv.visited?"#2D8659":"#8B8279"}}>I've visited this venue</span>
-            </label>
-            <div><label style={{...lbl,marginBottom:8,display:"block"}}>Event Sizes</label>
-              <div style={{display:"flex",gap:12,flexWrap:"wrap"}}>
-                {EVENT_SIZES.map(sz=>(
-                  <label key={sz} style={{display:"flex",alignItems:"center",gap:6,fontSize:13,cursor:"pointer",color:"#5A5348"}}>
-                    <input type="checkbox" checked={nv.eventSizes.includes(sz)} onChange={e=>setNv({...nv,eventSizes:e.target.checked?[...nv.eventSizes,sz]:nv.eventSizes.filter(s=>s!==sz)})}/> {sz}
-                  </label>
-                ))}
-              </div>
-            </div>
-            <div style={{display:"flex",gap:20,flexWrap:"wrap"}}>
-              <Toggle checked={nv.privateRoom} onChange={v=>setNv({...nv,privateRoom:v})} label="Private Room"/>
-              <Toggle checked={nv.av} onChange={v=>setNv({...nv,av:v})} label="AV Ready"/>
-              <Toggle checked={nv.dietary} onChange={v=>setNv({...nv,dietary:v})} label="Dietary Flex"/>
-            </div>
-            <div><label style={{...lbl,marginBottom:4,display:"block"}}>Exclusivity</label><Stars rating={nv.exclusivity} interactive onRate={r=>setNv({...nv,exclusivity:r})} size={22}/></div>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:12}}>
-              <input value={nv.contact} onChange={e=>setNv({...nv,contact:e.target.value})} placeholder="Contact name" style={inp}/>
-              <input value={nv.phone} onChange={e=>setNv({...nv,phone:e.target.value})} placeholder="Phone" style={inp}/>
-            </div>
-            <textarea value={nv.notes} onChange={e=>setNv({...nv,notes:e.target.value})} placeholder="Notes — booking tips, room details, what worked well..." rows={3} style={{...inp,resize:"vertical"}}/>
-            <div style={{display:"flex",gap:12,marginTop:8}}>
-              <button onClick={()=>{if(nv.name&&nv.city)addVenue(nv);}} style={{...btnP,opacity:nv.name&&nv.city?1:0.5}}>Add Venue</button>
-              <button onClick={()=>setShowAddForm(false)} style={btnS}>Cancel</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const DiscoverPanel = () => {
-    // Build city list: all REGIONS cities + unique cities from saved venues
-    const allCities = useMemo(() => {
-      const regionCities = Object.values(REGIONS).flat();
-      const venueCities = venues.map(v => v.city).filter(Boolean);
-      return [...new Set([...regionCities, ...venueCities])].sort();
-    }, [venues]);
-
-    // Batch selection state (local to panel)
-    const [batchSelected, setBatchSelected] = useState(() => {
-      const existing = new Set(batchCities.split(/[,\n]/).map(c=>c.trim()).filter(Boolean));
-      return existing;
-    });
-    const [citySearch, setCitySearch] = useState("");
-
-    const filteredCities = citySearch
-      ? allCities.filter(c => c.toLowerCase().includes(citySearch.toLowerCase()))
-      : allCities;
-
-    const toggleCity = (city) => {
-      setBatchSelected(prev => {
-        const next = new Set(prev);
-        if (next.has(city)) next.delete(city); else if (next.size < 15) next.add(city);
-        return next;
-      });
-    };
-
-    // Sync batchSelected → batchCities string whenever selection changes
-    useEffect(() => {
-      setBatchCities([...batchSelected].join("\n"));
-    }, [batchSelected]);
-
-    return(
-      <div style={{position:"fixed",top:0,left:0,width:560,height:"100vh",background:"#FFFFFF",borderRight:"1px solid #E0E0D8",zIndex:100,display:"flex",flexDirection:"column",boxShadow:"8px 0 40px rgba(0,0,0,0.08)",animation:"slideInLeft 0.25s ease"}}>
-        {/* Panel header */}
-        <div style={{padding:"24px 28px",borderBottom:"1px solid #E0E0D8",flexShrink:0}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
-            <div>
-              <h2 style={{margin:0,fontSize:20,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>Discover Venues</h2>
-              <p style={{margin:"4px 0 0",fontSize:13,color:"#6B6B65"}}>Find venues in any city to add to your tracker</p>
-            </div>
-            <button onClick={()=>setShowDiscover(false)} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#A0A09A",padding:4,lineHeight:1}}>✕</button>
-          </div>
-          <div style={{display:"flex",border:"1.5px solid #D8D8D0",borderRadius:8,overflow:"hidden",marginBottom:14}}>
-            {["single","batch"].map(m=>(
-              <button key={m} onClick={()=>setSearchMode(m)} style={{flex:1,padding:"7px 0",border:"none",background:searchMode===m?"#0A0A0A":"#FFFFFF",color:searchMode===m?"#EBF245":"#6B6B65",fontSize:12,cursor:"pointer",fontWeight:700}}>
-                {m==="single"?"Single City":"Batch Search"}
-              </button>
-            ))}
-          </div>
-          {searchMode==="single"?(
-            <div style={{display:"grid",gap:10}}>
-              <div>
-                <label style={{...lbl,display:"block",marginBottom:4}}>City</label>
-                <input value={discoverCity} onChange={e=>setDiscoverCity(e.target.value)} placeholder="e.g. Houston, Nashville, Raleigh..."
-                  onKeyDown={e=>e.key==="Enter"&&discoverVenues()} style={{...inp,padding:"10px 14px"}}/>
-              </div>
-              <div>
-                <label style={{...lbl,display:"block",marginBottom:4}}>Venue Type</label>
-                <select value={discoverType} onChange={e=>setDiscoverType(e.target.value)} style={{...sel,width:"100%",padding:"10px 14px"}}>
-                  {DISCOVER_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
-              </div>
-              <button onClick={discoverVenues} disabled={isSearching||!discoverCity.trim()} style={{...btnP,opacity:isSearching||!discoverCity.trim()?.6:1,padding:"11px 0"}}>
-                {isSearching?"Searching...":"Search Venues"}
-              </button>
-            </div>
-          ):(
-            <div style={{display:"grid",gap:10}}>
-              {/* City picker */}
-              <div>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
-                  <label style={{...lbl}}>Select Cities <span style={{color:"#0A0A0A",fontWeight:700}}>({batchSelected.size}/15)</span></label>
-                  {batchSelected.size>0&&<button onClick={()=>setBatchSelected(new Set())} style={{background:"none",border:"none",fontSize:11,color:"#6B6B65",cursor:"pointer",fontWeight:600,padding:0}}>Clear all</button>}
-                </div>
-                {/* Selected pills */}
-                {batchSelected.size>0&&(
-                  <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
-                    {[...batchSelected].map(city=>(
-                      <span key={city} onClick={()=>toggleCity(city)}
-                        style={{display:"inline-flex",alignItems:"center",gap:4,background:"#0A0A0A",color:"#EBF245",padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer"}}>
-                        {city} <span style={{fontSize:14,lineHeight:1}}>×</span>
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {/* Search + dropdown */}
-                <div style={{position:"relative"}}>
-                  <input value={citySearch} onChange={e=>setCitySearch(e.target.value)}
-                    placeholder="Search cities..." style={{...inp,padding:"8px 12px",marginBottom:0}}/>
-                  {batchSelected.size<15&&(
-                    <div style={{maxHeight:180,overflowY:"auto",border:"1.5px solid #D8D8D0",borderTop:"none",borderRadius:"0 0 8px 8px",background:"#FFFFFF",position:"relative",zIndex:10}}>
-                      {filteredCities.filter(c=>!batchSelected.has(c)).length===0?(
-                        <p style={{padding:"10px 12px",fontSize:13,color:"#A0A09A",margin:0}}>No cities found</p>
-                      ):filteredCities.filter(c=>!batchSelected.has(c)).map(city=>(
-                        <div key={city} onClick={()=>toggleCity(city)}
-                          style={{padding:"8px 14px",fontSize:13,color:"#0A0A0A",cursor:"pointer",transition:"background 0.1s",borderBottom:"1px solid #F4F4F0"}}
-                          onMouseEnter={e=>e.currentTarget.style.background="#EBF245"}
-                          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-                          {city}
-                          {venues.some(v=>v.city===city)&&<span style={{fontSize:11,color:"#6B6B65",marginLeft:6}}>({venues.filter(v=>v.city===city).length} saved)</span>}
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div>
-                <label style={{...lbl,display:"block",marginBottom:4}}>Venue Type</label>
-                <select value={discoverType} onChange={e=>setDiscoverType(e.target.value)} style={{...sel,width:"100%",padding:"10px 14px"}}>
-                  {DISCOVER_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
-              </div>
-              {isSearching&&batchProgress.total>1&&(
-                <div>
-                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
-                    <span style={{fontSize:12,color:"#3A3A35",fontWeight:600}}>Searching {batchProgress.currentCity}...</span>
-                    <span style={{fontSize:12,color:"#6B6B65"}}>{batchProgress.current}/{batchProgress.total}</span>
-                  </div>
-                  <div style={{height:6,background:"#E0E0D8",borderRadius:3,overflow:"hidden"}}>
-                    <div style={{height:"100%",background:"#0A0A0A",borderRadius:3,width:`${(batchProgress.current/batchProgress.total)*100}%`,transition:"width 0.5s ease"}}/>
-                  </div>
-                </div>
-              )}
-              <button onClick={discoverVenues} disabled={isSearching||batchSelected.size===0} style={{...btnP,opacity:isSearching||batchSelected.size===0?.6:1,padding:"11px 0"}}>
-                {isSearching?`Searching ${batchProgress.current+1}/${batchProgress.total}...`:`Search ${batchSelected.size} ${batchSelected.size===1?"City":"Cities"}`}
-              </button>
-            </div>
-          )}
-          {!apiKey&&<p style={{margin:"10px 0 0",fontSize:12,color:"#C0392B",fontWeight:600}}>⚠ Set up your API key in Settings to enable search.</p>}
-        </div>
-
-        {/* Results */}
-        <div style={{flex:1,overflowY:"auto",padding:"16px 28px"}}>
-          {isSearching&&discoveredVenues.length===0&&(
-            <div style={{padding:"32px 0",textAlign:"center"}}>
-              <Spinner/>
-              <p style={{color:"#6B6B65",fontSize:14,marginTop:12}}>Searching{batchProgress.currentCity?` ${batchProgress.currentCity}`:""}...</p>
-            </div>
-          )}
-          {searchError&&<div style={{background:"#FFF5F5",border:"1px solid #E8C4C4",borderRadius:10,padding:16,color:"#8B4444",fontSize:13,marginBottom:12}}>{searchError}</div>}
-          {discoveredVenues.length>0&&(
-            <div>
-              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
-                <p style={{margin:0,fontSize:13,color:"#0A0A0A",fontWeight:700}}>{discoveredVenues.length} venues found{isSearching?" (searching...)":""}</p>
-                {savedIds.size>0&&<p style={{margin:0,fontSize:12,color:"#1A5C3A",fontWeight:700}}>{savedIds.size} saved ✓</p>}
-              </div>
-              {(()=>{
-                const cities=[...new Set(discoveredVenues.map(v=>v.city||"Unknown"))];
-                const multi=cities.length>1;
-                return multi?cities.map(city=>{
-                  const cvs=discoveredVenues.filter(v=>v.city===city);
-                  return(
-                    <div key={city} style={{marginBottom:24}}>
-                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
-                        <h3 style={{margin:0,fontSize:15,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>{city}</h3>
-                        <span style={{fontSize:11,color:"#6B6B65",background:"#F4F4F0",padding:"2px 8px",borderRadius:6,fontWeight:600}}>{cvs.length}</span>
-                        <div style={{flex:1,height:1,background:"#E0E0D8"}}/>
-                      </div>
-                      {cvs.map(dv=><DiscCard key={dv._id} dv={dv}/>)}
-                    </div>
-                  );
-                }):<>{discoveredVenues.map(dv=><DiscCard key={dv._id} dv={dv}/>)}</>;
-              })()}
-            </div>
-          )}
-          {!isSearching&&!searchError&&discoveredVenues.length===0&&(
-            <div style={{textAlign:"center",padding:"48px 0",color:"#A0A09A"}}>
-              <p style={{fontSize:44,margin:"0 0 10px"}}>🍷</p>
-              <p style={{fontSize:16,fontFamily:"'Playfair Display',serif",color:"#3A3A35"}}>Search any city to discover venues</p>
-              <p style={{fontSize:12,maxWidth:340,margin:"6px auto 0",lineHeight:1.6}}>Use Batch Search to pick multiple cities at once — perfect for quarterly planning.</p>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  };
-
-  const DiscCard = ({dv, savedIds, venues, saveDiscovered}) => {
-    const isSaved=savedIds.has(dv._id);
-    const alreadyIn=venues.some(v=>v.name.toLowerCase()===dv.name.toLowerCase());
-    return(
-      <div style={{background:"#fff",borderRadius:10,padding:16,border:"1.5px solid #E8E2D9",marginBottom:10,animation:"fadeIn 0.3s ease"}}
-        onMouseEnter={e=>{e.currentTarget.style.borderColor="#C8B89A";}}
-        onMouseLeave={e=>{e.currentTarget.style.borderColor="#E8E2D9";}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:6}}>
-          <div style={{flex:1}}>
-            <h3 style={{margin:0,fontSize:15,fontFamily:"'Playfair Display',serif",color:"#2C2622",fontWeight:600}}>{dv.name}</h3>
-            <p style={{margin:"2px 0 0",fontSize:12,color:"#8B8279"}}>{[dv.neighborhood,dv.cuisine].filter(Boolean).join(" · ")}</p>
-          </div>
-          <span style={{fontSize:13,fontWeight:600,color:"#8B7355",whiteSpace:"nowrap",marginLeft:8}}>{dv.priceRange}</span>
-        </div>
-        <p style={{fontSize:12,color:"#5A5348",lineHeight:1.5,margin:"8px 0 10px"}}>{dv.description}</p>
-        <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
-          {dv.privateRoom&&<Tag color="#5B8A72">Private Dining</Tag>}
-          {dv.capacity&&<Tag color="#4A6FA5">{dv.capacity}</Tag>}
-          {dv.estimatedPricePerHead>0&&<Tag color="#8B7355">~${dv.estimatedPricePerHead}/head</Tag>}
-        </div>
-        {dv.knownFor&&<p style={{fontSize:11,color:"#A09889",fontStyle:"italic",margin:"0 0 4px"}}>Known for: {dv.knownFor}</p>}
-        {dv.website&&<a href={dv.website} target="_blank" rel="noopener noreferrer" style={{fontSize:11,color:"#4A6FA5",display:"block",marginBottom:4,textDecoration:"none"}}>🔗 {dv.website}</a>}
-        {dv.sources&&<p style={{fontSize:11,color:"#4A6FA5",margin:"0 0 10px",fontWeight:500}}>📍 {dv.sources}</p>}
-        <button onClick={()=>!isSaved&&!alreadyIn&&saveDiscovered(dv)} disabled={isSaved||alreadyIn}
-          style={{...btnP,width:"100%",textAlign:"center",fontSize:12,padding:"8px 0",background:isSaved||alreadyIn?"#D5CEC4":"#8B7355",cursor:isSaved||alreadyIn?"default":"pointer"}}>
-          {alreadyIn?"Already in Tracker":isSaved?"✓ Saved":"＋ Save to Tracker"}
-        </button>
-      </div>
-    );
-  };
-
-  // ── Venue photo component ──
-  const VenuePhoto = ({name, city, height=160}) => {
-    const [photoUrl, setPhotoUrl] = useState(null);
-    const [loading, setLoading] = useState(true);
-    useEffect(() => {
-      let cancelled = false;
-      setLoading(true);
-      fetchVenuePhoto(name, city).then(url => {
-        if (!cancelled) { setPhotoUrl(url); setLoading(false); }
-      });
-      return () => { cancelled = true; };
-    }, [name, city]);
-
-    // Deterministic gradient from venue name
-    const hue = name.split("").reduce((a,c)=>a+c.charCodeAt(0),0) % 360;
-    const gradient = `linear-gradient(135deg, hsl(${hue},25%,20%) 0%, hsl(${(hue+40)%360},30%,35%) 100%)`;
-
-    return (
-      <div style={{width:"100%",height,borderRadius:"10px 10px 0 0",overflow:"hidden",position:"relative",background:gradient,flexShrink:0}}>
-        {loading && (
-          <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center"}}>
-            <div style={{width:20,height:20,border:"2px solid rgba(255,255,255,0.3)",borderTopColor:"#fff",borderRadius:"50%",animation:"spin 0.8s linear infinite"}}/>
-          </div>
-        )}
-        {!loading && photoUrl && (
-          <img src={photoUrl} alt={name}
-            style={{width:"100%",height:"100%",objectFit:"cover",display:"block"}}
-            onError={()=>setPhotoUrl(null)}/>
-        )}
-        {!loading && !photoUrl && (
-          <div style={{position:"absolute",inset:0,display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:4}}>
-            <span style={{fontSize:28}}>🍽</span>
-            <span style={{fontSize:11,color:"rgba(255,255,255,0.7)",fontWeight:600,textAlign:"center",padding:"0 12px"}}>{name}</span>
-          </div>
-        )}
-      </div>
-    );
-  };
-
-  const VenueCard = useCallback(({venue}) => (
-    <div style={{position:"relative"}}>
-      <div onClick={e=>{e.stopPropagation();toggleCompare(venue.id);}}
-        style={{position:"absolute",top:10,right:10,width:22,height:22,borderRadius:4,border:`2px solid ${compareIds.has(venue.id)?"#8B7355":"#D5CEC4"}`,background:compareIds.has(venue.id)?"#8B7355":"#fff",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:2,fontSize:12,color:"#fff",transition:"all 0.15s"}}>
-        {compareIds.has(venue.id)&&"✓"}
-      </div>
-      <div onClick={()=>{setSelectedVenue(venue);setIsEditing(false);}}
-        style={{background:"#fff",borderRadius:12,padding:22,border:`1.5px solid ${selectedVenue?.id===venue.id?"#C8B89A":"#E8E2D9"}`,cursor:"pointer",transition:"all 0.2s",boxShadow:selectedVenue?.id===venue.id?"0 4px 20px rgba(139,115,85,0.15)":"0 1px 4px rgba(0,0,0,0.04)"}}
-        onMouseEnter={e=>{e.currentTarget.style.borderColor="#C8B89A";e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 24px rgba(139,115,85,0.12)";}}
-        onMouseLeave={e=>{e.currentTarget.style.borderColor=selectedVenue?.id===venue.id?"#C8B89A":"#E8E2D9";e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow=selectedVenue?.id===venue.id?"0 4px 20px rgba(139,115,85,0.15)":"0 1px 4px rgba(0,0,0,0.04)";}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
-          <div style={{flex:1,minWidth:0}}>
-            <h3 style={{margin:0,fontSize:16,fontFamily:"'Playfair Display',serif",color:"#2C2622",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{venue.name}</h3>
-            <p style={{margin:"3px 0 0",fontSize:13,color:"#8B8279"}}>{venue.city}{venue.region?` · ${venue.region}`:""}</p>
-          </div>
-          <Tag filled color={STATUS_COLORS[venue.status]}>{venue.status}</Tag>
-        </div>
-        <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:12}}>
-          <span style={{fontSize:20,fontWeight:600,color:"#2C2622",fontFamily:"'Playfair Display',serif"}}>${venue.pricePerHead}</span>
-          <span style={{fontSize:12,color:"#A09889"}}>/head</span>
-          {venue.visited&&<span style={{fontSize:11,color:"#2D8659",fontWeight:600,background:"#F0F9F4",padding:"2px 8px",borderRadius:10,border:"1px solid #B7E4C7"}}>✓ Visited</span>}
-          <div style={{marginLeft:"auto"}}><Stars rating={venue.exclusivity} size={14}/></div>
-        </div>
-        {venue.website&&<p style={{fontSize:11,color:"#4A6FA5",margin:"0 0 8px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🔗 {venue.website}</p>}
-        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-          {venue.privateRoom&&<Tag color="#5B8A72">Private</Tag>}
-          {venue.av&&<Tag color="#4A6FA5">AV</Tag>}
-          {venue.dietary&&<Tag color="#7B68AE">Dietary</Tag>}
-          {venue.eventSizes.map(s=><Tag key={s} color="#B8A48E">{s.split(" ")[0]}</Tag>)}
-        </div>
-        {venue.rating>0&&(
-          <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #F0ECE6",display:"flex",alignItems:"center",gap:6}}>
-            <span style={{fontSize:11,color:"#A09889",textTransform:"uppercase",letterSpacing:"0.06em"}}>Rating</span>
-            <Stars rating={venue.rating} size={12}/>
-          </div>
-        )}
-      </div>
-    </div>
-  ),[selectedVenue,compareIds,toggleCompare]);
-
-  const VenueRow = ({venue}) => (
-    <tr onClick={()=>{setSelectedVenue(venue);setIsEditing(false);}} style={{cursor:"pointer",transition:"background 0.15s"}}
-      onMouseEnter={e=>e.currentTarget.style.background="#F8F5F0"} onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
-      <td style={{padding:"13px 16px",fontFamily:"'Playfair Display',serif",fontWeight:600,fontSize:14,color:"#2C2622"}}>{venue.name}</td>
-      <td style={{padding:"13px 12px",fontSize:13,color:"#5A5348"}}>{venue.city}</td>
-      <td style={{padding:"13px 12px",fontSize:13,color:"#8B8279"}}>{venue.region}</td>
-      <td style={{padding:"13px 12px",fontSize:14,fontWeight:600}}>${venue.pricePerHead}</td>
-      <td style={{padding:"13px 12px"}}>{venue.website?<a href={venue.website} target="_blank" rel="noopener noreferrer" onClick={e=>e.stopPropagation()} style={{fontSize:12,color:"#4A6FA5",textDecoration:"none"}}>🔗 Visit</a>:"—"}</td>
-      <td style={{padding:"13px 12px",fontSize:13}}>{venue.visited?<span style={{color:"#2D8659",fontWeight:600}}>✓ Yes</span>:<span style={{color:"#A09889"}}>No</span>}</td>
-      <td style={{padding:"13px 12px"}}><Stars rating={venue.exclusivity} size={13}/></td>
-      <td style={{padding:"13px 12px"}}><Tag filled color={STATUS_COLORS[venue.status]}>{venue.status}</Tag></td>
-      <td style={{padding:"13px 12px"}}><div style={{display:"flex",gap:3}}>{venue.privateRoom&&<Tag color="#5B8A72">P</Tag>}{venue.av&&<Tag color="#4A6FA5">AV</Tag>}{venue.dietary&&<Tag color="#7B68AE">D</Tag>}</div></td>
-      <td style={{padding:"13px 12px"}}><Stars rating={venue.rating} size={13}/></td>
-    </tr>
-  );
-
-  const leftShift = showDiscover ? 560 : 0;
-  const rightShift = selectedVenue ? 520 : 0;
-
-  return(
-    <div style={{minHeight:"100vh",background:"#F5F1EB"}}>
-      {/* Header */}
-      <div style={{background:"#0A0A0A",padding:"28px 40px 0",color:"#FFFFFF"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-end",marginBottom:20}}>
-          <div>
-            <p style={{margin:"0 0 4px",fontSize:11,textTransform:"uppercase",letterSpacing:"0.15em",color:"#EBF245",fontWeight:700}}>Field Marketing</p>
-            <h1 style={{margin:0,fontSize:32,fontFamily:"'Playfair Display',serif",fontWeight:600,color:"#FFFFFF"}}>Venue Tracker</h1>
-          </div>
-          <div style={{display:"flex",gap:28,alignItems:"flex-end",marginBottom:4,flexWrap:"wrap"}}>
-            {[{label:"Total",val:stats.total},{label:"Avg $/Head",val:`${stats.avgPrice}`},{label:"Regions",val:stats.regions},{label:"Visited",val:stats.visited},{label:"Used",val:stats.used},{label:"Booked",val:stats.booked}].map(s=>(
-              <div key={s.label} style={{textAlign:"center"}}>
-                <p style={{margin:0,fontSize:20,fontWeight:700,fontFamily:"'Playfair Display',serif",color:"#EBF245"}}>{s.val}</p>
-                <p style={{margin:"2px 0 0",fontSize:10,textTransform:"uppercase",letterSpacing:"0.1em",color:"#888884"}}>{s.label}</p>
-              </div>
-            ))}
-            <button onClick={()=>setShowSettings(true)} style={{background:"none",border:"1px solid #333330",borderRadius:8,color:"#888884",padding:"8px 14px",fontSize:12,cursor:"pointer",fontWeight:600}}>⚙ Settings</button>
-            <button onClick={exportCSV} style={{background:"none",border:"1px solid #333330",borderRadius:8,color:"#888884",padding:"8px 14px",fontSize:12,cursor:"pointer",fontWeight:600}}>↓ CSV</button>
-          </div>
-        </div>
-        <div style={{display:"flex",gap:0}}>
-          {[{key:"tracker",label:"My Venues",icon:"◻"},{key:"aitools",label:"AI Tools",icon:"✦"}].map(tab=>(
-            <button key={tab.key} onClick={()=>setMode(tab.key)}
-              style={{padding:"12px 28px",border:"none",borderRadius:"10px 10px 0 0",fontSize:14,fontWeight:700,cursor:"pointer",letterSpacing:"0.02em",transition:"all 0.2s",
-                background:mode===tab.key?"#F4F4F0":"transparent",color:mode===tab.key?"#0A0A0A":"#888884"}}>
-              {tab.icon} {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* AI Tools */}
-      {mode==="aitools"&&(
-        <div style={{padding:"0 40px 40px"}}>
-          <div style={{background:"#FFFFFF",borderRadius:"0 12px 12px 12px",padding:"32px 36px",border:"1px solid #E0E0D8"}}>
-            <h2 style={{margin:"0 0 6px",fontSize:20,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>AI-Powered Event Tools</h2>
-            <p style={{margin:"0 0 28px",fontSize:14,color:"#6B6B65"}}>Plan events, match venues, generate briefs — powered by your tracker data.</p>
-            <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(280px,1fr))",gap:20}}>
-              {[
-                {icon:"🎯",title:"Smart Venue Matching",desc:`Describe your event and AI picks the best from your ${venues.length} tracked venues.`,action:()=>setAiModal("match"),enabled:true},
-                {icon:"📋",title:"Event Brief Generator",desc:"Enter an account and city — get a full event plan with venue recs, menu, budget, timeline.",action:()=>setAiModal("brief"),enabled:true},
-                {icon:"⚖️",title:"Venue Comparison Report",desc:compareIds.size>=2?`${compareIds.size} venues selected — generate side-by-side report.`:`Select 2-5 venues via checkboxes on My Venues. (${compareIds.size} selected)`,action:()=>{if(compareIds.size>=2)setAiModal("compare");},enabled:compareIds.size>=2},
-                {icon:"✉️",title:"Draft Outreach Email",desc:"Open any venue in My Venues and click '✉ Email' to generate 3 booking email versions.",action:null,enabled:false},
-                {icon:"🍽️",title:"Dietary & Menu Planner",desc:"Open any venue and click '🍽 Menu' to get custom menu suggestions based on dietary needs.",action:null,enabled:false},
-              ].map(card=>(
-                <div key={card.title}
-                  onClick={card.action||undefined}
-                  style={{background:card.action&&card.enabled?"#F4F4F0":"#FAFAFA",borderRadius:10,padding:24,border:"1.5px solid #E0E0D8",transition:"all 0.2s",cursor:card.action?"pointer":"default",opacity:card.action||!card.enabled===false?1:0.6}}
-                  onMouseEnter={e=>{if(card.action){e.currentTarget.style.borderColor="#0A0A0A";e.currentTarget.style.background="#EBF245";}}}
-                  onMouseLeave={e=>{e.currentTarget.style.borderColor="#E0E0D8";e.currentTarget.style.background=card.action&&card.enabled?"#F4F4F0":"#FAFAFA";}}>
-                  <p style={{fontSize:26,margin:"0 0 10px"}}>{card.icon}</p>
-                  <h3 style={{margin:"0 0 6px",fontSize:16,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>{card.title}</h3>
-                  <p style={{margin:0,fontSize:13,color:"#6B6B65",lineHeight:1.6}}>{card.desc}</p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Tracker */}
-      {mode==="tracker"&&(
-        <React.Fragment>
-          {/* Filter bar */}
-          <div style={{padding:"18px 40px",background:"#FFFFFF",borderBottom:"1px solid #E0E0D8",marginLeft:leftShift,marginRight:rightShift,transition:"margin 0.25s ease"}}>
-            <div style={{display:"flex",gap:10,alignItems:"center",flexWrap:"wrap"}}>
-              <div style={{position:"relative",flex:"0 0 220px"}}>
-                <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Search venues or cities..." style={{...inp,paddingLeft:34}}/>
-                <span style={{position:"absolute",left:11,top:"50%",transform:"translateY(-50%)",color:"#A0A09A",fontSize:15}}>⌕</span>
-              </div>
-              <select value={filterRegion} onChange={e=>setFilterRegion(e.target.value)} style={sel}>
-                <option value="All">All Regions</option>
-                {Object.keys(REGIONS).map(r=><option key={r}>{r}</option>)}
-              </select>
-              <select value={filterSize} onChange={e=>setFilterSize(e.target.value)} style={sel}>
-                <option value="All">All Sizes</option>
-                {EVENT_SIZES.map(s=><option key={s}>{s}</option>)}
-              </select>
-              <select value={filterStatus} onChange={e=>setFilterStatus(e.target.value)} style={sel}>
-                <option value="All">All Statuses</option>
-                {STATUSES.map(s=><option key={s}>{s}</option>)}
-              </select>
-              {/* Visited filter pills */}
-              <div style={{display:"flex",border:"1.5px solid #D8D8D0",borderRadius:8,overflow:"hidden"}}>
-                {["All","Yes","No"].map(v=>(
-                  <button key={v} onClick={()=>setFilterVisited(v)}
-                    style={{padding:"7px 14px",border:"none",background:filterVisited===v?"#0A0A0A":"#FFFFFF",color:filterVisited===v?"#EBF245":"#6B6B65",fontSize:12,cursor:"pointer",fontWeight:700,whiteSpace:"nowrap"}}>
-                    {v==="All"?"All Visited":v==="Yes"?"✓ Visited":"Not Visited"}
-                  </button>
-                ))}
-              </div>
-              <div style={{display:"flex",alignItems:"center",gap:6}}>
-                <span style={{fontSize:12,color:"#6B6B65",whiteSpace:"nowrap"}}>≤ $</span>
-                <input type="range" min={50} max={300} value={budgetMax} onChange={e=>setBudgetMax(+e.target.value)} style={{width:90}}/>
-                <span style={{fontSize:13,fontWeight:700,color:"#0A0A0A",minWidth:36}}>{budgetMax}</span>
-              </div>
-            </div>
-            <div style={{display:"flex",gap:16,alignItems:"center",marginTop:12,flexWrap:"wrap"}}>
-              <Toggle checked={filterPrivate} onChange={setFilterPrivate} label="Private Room"/>
-              <Toggle checked={filterAV} onChange={setFilterAV} label="AV Ready"/>
-              <Toggle checked={filterDietary} onChange={setFilterDietary} label="Dietary Flex"/>
-              <div style={{display:"flex",alignItems:"center",gap:6}}>
-                <span style={{fontSize:12,color:"#6B6B65"}}>Min Exclusivity</span>
-                <Stars rating={filterExclusivity} interactive onRate={r=>setFilterExclusivity(r===filterExclusivity?0:r)} size={16}/>
-              </div>
-              <div style={{marginLeft:"auto",display:"flex",gap:8,alignItems:"center"}}>
-                <select value={sortBy} onChange={e=>setSortBy(e.target.value)} style={{...sel,minWidth:110}}>
-                  <option value="name">Sort: Name</option>
-                  <option value="price">Sort: Price</option>
-                  <option value="exclusivity">Sort: Exclusivity</option>
-                  <option value="rating">Sort: Rating</option>
-                  <option value="city">Sort: City</option>
-                </select>
-                <div style={{display:"flex",border:"1.5px solid #D8D8D0",borderRadius:8,overflow:"hidden"}}>
-                  {["grid","table"].map(v=>(
-                    <button key={v} onClick={()=>setView(v)} style={{padding:"6px 14px",border:"none",background:view===v?"#0A0A0A":"#FFFFFF",color:view===v?"#EBF245":"#6B6B65",fontSize:12,cursor:"pointer",fontWeight:700}}>
-                      {v==="grid"?"◻ Grid":"☰ Table"}
-                    </button>
-                  ))}
-                </div>
-                <button onClick={()=>setShowDiscover(d=>!d)}
-                  style={{...btnS,padding:"8px 18px",fontSize:13,background:showDiscover?"#0A0A0A":"transparent",color:showDiscover?"#EBF245":"#0A0A0A"}}>
-                  {showDiscover?"✕ Close Discover":"⌕ Discover Venues"}
-                </button>
-                <button onClick={()=>setShowAddForm(true)} style={btnP}>+ Add Venue</button>
-              </div>
-            </div>
-          </div>
-
-          {/* Grid/Table */}
-          <div style={{padding:"24px 40px 80px",marginLeft:leftShift,marginRight:rightShift,transition:"margin 0.25s ease"}}>
-            <p style={{margin:"0 0 14px",fontSize:13,color:"#6B6B65"}}>Showing {filtered.length} of {venues.length} venues</p>
-            {view==="grid"?(
-              <div style={{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(300px,1fr))",gap:14}}>
-                {filtered.map(v=><VenueCard key={v.id} venue={v}/>)}
-              </div>
-            ):(
-              <div style={{background:"#FFFFFF",borderRadius:12,border:"1.5px solid #E0E0D8",overflow:"hidden"}}>
-                <table style={{width:"100%",borderCollapse:"collapse",fontSize:13}}>
-                  <thead><tr style={{borderBottom:"2px solid #E0E0D8"}}>
-                    {["Venue","City","Region","$/Head","Website","Visited","Exclusivity","Status","Features","Rating"].map(h=>(
-                      <th key={h} style={{padding:"11px 14px",textAlign:"left",fontSize:10,textTransform:"uppercase",letterSpacing:"0.1em",color:"#6B6B65",fontWeight:700,background:"#F4F4F0"}}>{h}</th>
-                    ))}
-                  </tr></thead>
-                  <tbody>{filtered.map(v=><VenueRow key={v.id} venue={v}/>)}</tbody>
-                </table>
-              </div>
-            )}
-            {filtered.length===0&&(
-              <div style={{textAlign:"center",padding:"60px 20px",color:"#A0A09A"}}>
-                <p style={{fontSize:48,margin:"0 0 12px"}}>🍽</p>
-                <p style={{fontSize:16,fontFamily:"'Playfair Display',serif",color:"#3A3A35"}}>No venues match your filters</p>
-                <p style={{fontSize:13}}>Try adjusting your search or filters</p>
-              </div>
-            )}
-          </div>
-        </React.Fragment>
-      )}
-
-      {/* Panels */}
-      {showDiscover&&mode==="tracker"&&<DiscoverPanel
-        venues={venues} discoverCity={discoverCity} setDiscoverCity={setDiscoverCity}
-        discoverType={discoverType} setDiscoverType={setDiscoverType}
-        searchMode={searchMode} setSearchMode={setSearchMode}
-        batchCities={batchCities} setBatchCities={setBatchCities}
-        isSearching={isSearching} batchProgress={batchProgress}
-        discoveredVenues={discoveredVenues} savedIds={savedIds}
-        searchError={searchError} apiKey={apiKey}
-        discoverVenues={discoverVenues} saveDiscovered={saveDiscovered}
-        setShowDiscover={setShowDiscover} DISCOVER_TYPES={DISCOVER_TYPES}
-      />}
-      {selectedVenue&&<DetailPanel key={selectedVenue.id} venue={selectedVenue}/>}
-      {showAddForm&&<AddForm/>}
-      {showSettings&&<SettingsModal/>}
-      <AiModal/>
-
-      {/* Compare bar */}
-      {compareIds.size>0&&mode==="tracker"&&(
-        <div style={{position:"fixed",bottom:0,left:leftShift,right:rightShift,background:"#0A0A0A",padding:"13px 40px",display:"flex",alignItems:"center",justifyContent:"space-between",zIndex:90,boxShadow:"0 -4px 20px rgba(0,0,0,0.2)",transition:"left 0.25s ease,right 0.25s ease"}}>
-          <div style={{display:"flex",alignItems:"center",gap:12}}>
-            <span style={{color:"#EBF245",fontSize:13,fontWeight:700}}>{compareIds.size} venue{compareIds.size>1?"s":""} selected</span>
-            <div style={{display:"flex",gap:6,flexWrap:"wrap"}}>
-              {venues.filter(v=>compareIds.has(v.id)).map(v=><span key={v.id} style={{background:"#1A1A1A",color:"#EBF245",padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:600}}>{v.name}</span>)}
-            </div>
-          </div>
-          <div style={{display:"flex",gap:10}}>
-            <button onClick={()=>{if(compareIds.size>=2){setMode("aitools");setAiModal("compare");}}} disabled={compareIds.size<2}
-              style={{...btnP,padding:"8px 20px",fontSize:13,background:compareIds.size>=2?"#EBF245":"#333330",color:compareIds.size>=2?"#0A0A0A":"#6B6B65",cursor:compareIds.size>=2?"pointer":"default"}}>
-              ⚖️ Compare{compareIds.size<2?` (need ${2-compareIds.size} more)`:""}
-            </button>
-            <button onClick={()=>setCompareIds(new Set())} style={{...btnS,padding:"8px 16px",fontSize:13,color:"#888884",borderColor:"#333330"}}>Clear</button>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-ReactDOM.render(<VenueTracker/>,document.getElementById("root"));
-</script>
-</body>
-</html>
+    return data.content.filter(b=>b.type
