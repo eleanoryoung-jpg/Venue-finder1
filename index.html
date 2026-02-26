@@ -43,7 +43,16 @@ const STATUS_COLORS = {Prospect:"#6B6B65",Contacted:"#2A7A5A",Booked:"#0A0A0A",U
 const STORAGE_KEY = "venue-tracker-data-v2";
 const API_KEY_STORAGE = "venue-tracker-api-key";
 const PHOTOS_PROXY = "/api/photos-proxy";
-const photoCache = {};
+const PHOTO_CACHE_KEY = "venue-photo-cache-v1";
+// Load persisted photo cache from localStorage
+const photoCache = (() => {
+  try { return JSON.parse(localStorage.getItem(PHOTO_CACHE_KEY)) || {}; }
+  catch(e) { return {}; }
+})();
+const savePhotoCache = () => {
+  try { localStorage.setItem(PHOTO_CACHE_KEY, JSON.stringify(photoCache)); }
+  catch(e) {}
+};
 
 const DISCOVER_TYPES = [
   {value:"upscale restaurants with private dining rooms",label:"Upscale restaurants with private dining"},
@@ -131,7 +140,7 @@ const VenuePhoto = ({name,city,height=150}) => {
       .then(data=>{
         if (cancelled) return;
         const u = data?.photos?.[0]?.src?.landscape || data?.photos?.[0]?.src?.large || null;
-        if (u) photoCache[key] = u;
+        if (u) { photoCache[key] = u; savePhotoCache(); }
         setUrl(u); setLoading(false);
       })
       .catch(()=>{ if(!cancelled){setUrl(null);setLoading(false);} });
