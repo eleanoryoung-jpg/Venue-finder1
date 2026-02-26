@@ -23,9 +23,6 @@
     @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
     select,input,textarea,button{font-family:'DM Sans',sans-serif}
   </style>
-</head>
-<body>
-<div id="root"></div>
 <script type="text/babel">
 const {useState,useMemo,useEffect,useCallback,useRef} = React;
 
@@ -1057,5 +1054,8 @@ let __mountNode = document.getElementById("root");
 if (!__mountNode) { __mountNode = document.createElement("div"); __mountNode.id = "root"; document.body.prepend(__mountNode); }
 ReactDOM.render(<VenueTracker/>,__mountNode);
 </script>
+</head>
+<body>
+<div id="root"></div>
 </body>
 </html>
