@@ -18,7 +18,7 @@
     ::-webkit-scrollbar-thumb:hover{background:#A0A09A}
     input[type="range"]{accent-color:#0A0A0A}
     @keyframes slideInRight{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
-    @keyframes slideInLeft{from{transform:translateX(-100%);opacity:0}to{transform:translateX(0);opacity:1}}
+    @keyframes slideInLeft{from{transform:translateX(-100%)}to{transform:translateX(0)}}
     @keyframes shimmer{0%{background-position:200% 0}100%{background-position:-200% 0}}
     @keyframes spin{to{transform:rotate(360deg)}}
     @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
@@ -45,10 +45,7 @@ const STATUS_COLORS = {
 };
 const STORAGE_KEY = "venue-tracker-data-v2";
 const API_KEY_STORAGE = "venue-tracker-api-key";
-const PHOTOS_PROXY = "/api/photos-proxy";
-const photoCache = {};
-console.log("PHOTOS_PROXY defined as:", PHOTOS_PROXY);
-  
+
 const DISCOVER_TYPES = [
   {value:"upscale restaurants with private dining rooms",label:"Upscale restaurants with private dining"},
   {value:"Michelin star restaurants with private dining rooms",label:"Michelin Star restaurants"},
@@ -129,7 +126,181 @@ const Spinner = () => (
   <div style={{width:32,height:32,border:"3px solid #E8E2D9",borderTopColor:"#8B7355",borderRadius:"50%",animation:"spin 0.8s linear infinite",margin:"0 auto"}}/>
 );
 
-// ═══ MAIN APP ═══
+// ═══ DISCOVER PANEL (outside VenueTracker to prevent re-render glitch) ═══
+function DiscoverPanel({venues, discoverCity, setDiscoverCity, discoverType, setDiscoverType,
+  searchMode, setSearchMode, batchCities, setBatchCities, isSearching, batchProgress,
+  discoveredVenues, savedIds, searchError, apiKey, discoverVenues, saveDiscovered,
+  setShowDiscover, DISCOVER_TYPES}) {
+
+  const allCities = useMemo(() => {
+    const regionCities = Object.values(REGIONS).flat();
+    const venueCities = venues.map(v => v.city).filter(Boolean);
+    return [...new Set([...regionCities, ...venueCities])].sort();
+  }, [venues]);
+
+  const [batchSelected, setBatchSelected] = useState(() => {
+    const existing = new Set(batchCities.split(/[,\n]/).map(c=>c.trim()).filter(Boolean));
+    return existing;
+  });
+  const [citySearch, setCitySearch] = useState("");
+
+  const filteredCities = useMemo(() => citySearch
+    ? allCities.filter(c => c.toLowerCase().includes(citySearch.toLowerCase()))
+    : allCities, [allCities, citySearch]);
+
+  const toggleCity = useCallback((city) => {
+    setBatchSelected(prev => {
+      const next = new Set(prev);
+      if (next.has(city)) next.delete(city); else if (next.size < 15) next.add(city);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    setBatchCities([...batchSelected].join("\n"));
+  }, [batchSelected]);
+
+  const savedIdsCount = savedIds.size;
+
+  return(
+      <div style={{position:"fixed",top:0,left:0,width:560,height:"100vh",background:"#FFFFFF",borderRight:"1px solid #E0E0D8",zIndex:100,display:"flex",flexDirection:"column",boxShadow:"8px 0 40px rgba(0,0,0,0.08)",animation:"slideInLeft 0.25s ease"}}>
+        <div style={{padding:"24px 28px",borderBottom:"1px solid #E0E0D8",flexShrink:0}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:14}}>
+            <div>
+              <h2 style={{margin:0,fontSize:20,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>Discover Venues</h2>
+              <p style={{margin:"4px 0 0",fontSize:13,color:"#6B6B65"}}>Find venues in any city to add to your tracker</p>
+            </div>
+            <button onClick={()=>setShowDiscover(false)} style={{background:"none",border:"none",fontSize:20,cursor:"pointer",color:"#A0A09A",padding:4,lineHeight:1}}>✕</button>
+          </div>
+          <div style={{display:"flex",border:"1.5px solid #D8D8D0",borderRadius:8,overflow:"hidden",marginBottom:14}}>
+            {["single","batch"].map(m=>(
+              <button key={m} onClick={()=>setSearchMode(m)} style={{flex:1,padding:"7px 0",border:"none",background:searchMode===m?"#0A0A0A":"#FFFFFF",color:searchMode===m?"#EBF245":"#6B6B65",fontSize:12,cursor:"pointer",fontWeight:700}}>
+                {m==="single"?"Single City":"Batch Search"}
+              </button>
+            ))}
+          </div>
+          {searchMode==="single"?(
+            <div style={{display:"grid",gap:10}}>
+              <div>
+                <label style={{...lbl,display:"block",marginBottom:4}}>City</label>
+                <input value={discoverCity} onChange={e=>setDiscoverCity(e.target.value)} placeholder="e.g. Houston, Nashville, Raleigh..."
+                  onKeyDown={e=>e.key==="Enter"&&discoverVenues()} style={{...inp,padding:"10px 14px"}}/>
+              </div>
+              <div>
+                <label style={{...lbl,display:"block",marginBottom:4}}>Venue Type</label>
+                <select value={discoverType} onChange={e=>setDiscoverType(e.target.value)} style={{...sel,width:"100%",padding:"10px 14px"}}>
+                  {DISCOVER_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              <button onClick={discoverVenues} disabled={isSearching||!discoverCity.trim()} style={{...btnP,opacity:isSearching||!discoverCity.trim()?.6:1,padding:"11px 0"}}>
+                {isSearching?"Searching...":"Search Venues"}
+              </button>
+            </div>
+          ):(
+            <div style={{display:"grid",gap:10}}>
+              <div>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+                  <label style={{...lbl}}>Select Cities <span style={{color:"#0A0A0A",fontWeight:700}}>({batchSelected.size}/15)</span></label>
+                  {batchSelected.size>0&&<button onClick={()=>setBatchSelected(new Set())} style={{background:"none",border:"none",fontSize:11,color:"#6B6B65",cursor:"pointer",fontWeight:600,padding:0}}>Clear all</button>}
+                </div>
+                {batchSelected.size>0&&(
+                  <div style={{display:"flex",flexWrap:"wrap",gap:5,marginBottom:8}}>
+                    {[...batchSelected].map(city=>(
+                      <span key={city} onClick={()=>toggleCity(city)}
+                        style={{display:"inline-flex",alignItems:"center",gap:4,background:"#0A0A0A",color:"#EBF245",padding:"3px 10px",borderRadius:6,fontSize:12,fontWeight:600,cursor:"pointer"}}>
+                        {city} <span style={{fontSize:14,lineHeight:1}}>×</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                <div>
+                  <input value={citySearch} onChange={e=>setCitySearch(e.target.value)}
+                    placeholder="Search cities..." style={{...inp,padding:"8px 12px",borderRadius:"8px 8px 0 0"}}/>
+                  {batchSelected.size<15&&(
+                    <div style={{maxHeight:180,overflowY:"auto",border:"1.5px solid #D8D8D0",borderTop:"none",borderRadius:"0 0 8px 8px",background:"#FFFFFF"}}>
+                      {filteredCities.filter(c=>!batchSelected.has(c)).length===0?(
+                        <p style={{padding:"10px 12px",fontSize:13,color:"#A0A09A",margin:0}}>No cities found</p>
+                      ):filteredCities.filter(c=>!batchSelected.has(c)).map(city=>(
+                        <div key={city} onClick={()=>toggleCity(city)}
+                          style={{padding:"8px 14px",fontSize:13,color:"#0A0A0A",cursor:"pointer",transition:"background 0.1s",borderBottom:"1px solid #F4F4F0"}}
+                          onMouseEnter={e=>e.currentTarget.style.background="#EBF245"}
+                          onMouseLeave={e=>e.currentTarget.style.background="transparent"}>
+                          {city}
+                          {venues.some(v=>v.city===city)&&<span style={{fontSize:11,color:"#6B6B65",marginLeft:6}}>({venues.filter(v=>v.city===city).length} saved)</span>}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+              <div>
+                <label style={{...lbl,display:"block",marginBottom:4}}>Venue Type</label>
+                <select value={discoverType} onChange={e=>setDiscoverType(e.target.value)} style={{...sel,width:"100%",padding:"10px 14px"}}>
+                  {DISCOVER_TYPES.map(t=><option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </div>
+              {isSearching&&batchProgress.total>1&&(
+                <div>
+                  <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+                    <span style={{fontSize:12,color:"#3A3A35",fontWeight:600}}>Searching {batchProgress.currentCity}...</span>
+                    <span style={{fontSize:12,color:"#6B6B65"}}>{batchProgress.current}/{batchProgress.total}</span>
+                  </div>
+                  <div style={{height:6,background:"#E0E0D8",borderRadius:3,overflow:"hidden"}}>
+                    <div style={{height:"100%",background:"#0A0A0A",borderRadius:3,width:`${(batchProgress.current/batchProgress.total)*100}%`,transition:"width 0.5s ease"}}/>
+                  </div>
+                </div>
+              )}
+              <button onClick={discoverVenues} disabled={isSearching||batchSelected.size===0} style={{...btnP,opacity:isSearching||batchSelected.size===0?.6:1,padding:"11px 0"}}>
+                {isSearching?`Searching ${batchProgress.current+1}/${batchProgress.total}...`:`Search ${batchSelected.size} ${batchSelected.size===1?"City":"Cities"}`}
+              </button>
+            </div>
+          )}
+          {!apiKey&&<p style={{margin:"10px 0 0",fontSize:12,color:"#C0392B",fontWeight:600}}>⚠ Set up your API key in Settings to enable search.</p>}
+        </div>
+        <div style={{flex:1,overflowY:"auto",padding:"16px 28px"}}>
+          {isSearching&&discoveredVenues.length===0&&(
+            <div style={{padding:"32px 0",textAlign:"center"}}>
+              <Spinner/>
+              <p style={{color:"#6B6B65",fontSize:14,marginTop:12}}>Searching{batchProgress.currentCity?` ${batchProgress.currentCity}`:""}...</p>
+            </div>
+          )}
+          {searchError&&<div style={{background:"#FFF5F5",border:"1px solid #E8C4C4",borderRadius:10,padding:16,color:"#8B4444",fontSize:13,marginBottom:12}}>{searchError}</div>}
+          {discoveredVenues.length>0&&(
+            <div>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:12}}>
+                <p style={{margin:0,fontSize:13,color:"#0A0A0A",fontWeight:700}}>{discoveredVenues.length} venues found{isSearching?" (searching...)":""}</p>
+                {savedIdsCount>0&&<p style={{margin:0,fontSize:12,color:"#1A5C3A",fontWeight:700}}>{savedIdsCount} saved ✓</p>}
+              </div>
+              {(()=>{
+                const cities=[...new Set(discoveredVenues.map(v=>v.city||"Unknown"))];
+                const multi=cities.length>1;
+                return multi?cities.map(city=>{
+                  const cvs=discoveredVenues.filter(v=>v.city===city);
+                  return(
+                    <div key={city} style={{marginBottom:24}}>
+                      <div style={{display:"flex",alignItems:"center",gap:10,marginBottom:10}}>
+                        <h3 style={{margin:0,fontSize:15,fontFamily:"'Playfair Display',serif",color:"#0A0A0A"}}>{city}</h3>
+                        <span style={{fontSize:11,color:"#6B6B65",background:"#F4F4F0",padding:"2px 8px",borderRadius:6,fontWeight:600}}>{cvs.length}</span>
+                        <div style={{flex:1,height:1,background:"#E0E0D8"}}/>
+                      </div>
+                      {cvs.map(dv=><DiscCard key={dv._id} dv={dv} savedIds={savedIds} venues={venues} saveDiscovered={saveDiscovered}/>)}
+                    </div>
+                  );
+                }):<>{discoveredVenues.map(dv=><DiscCard key={dv._id} dv={dv} savedIds={savedIds} venues={venues} saveDiscovered={saveDiscovered}/>)}</>;
+              })()}
+            </div>
+          )}
+          {!isSearching&&!searchError&&discoveredVenues.length===0&&(
+            <div style={{textAlign:"center",padding:"48px 0",color:"#A0A09A"}}>
+              <p style={{fontSize:44,margin:"0 0 10px"}}>🍷</p>
+              <p style={{fontSize:16,fontFamily:"'Playfair Display',serif",color:"#3A3A35"}}>Search any city to discover venues</p>
+              <p style={{fontSize:12,maxWidth:340,margin:"6px auto 0",lineHeight:1.6}}>Use Batch Search to pick multiple cities at once — perfect for quarterly planning.</p>
+            </div>
+          )}
+        </div>
+      </div>
+  );
+}
 function VenueTracker() {
   const [venues, setVenues] = useState(loadVenues);
   const [search, setSearch] = useState("");
@@ -864,7 +1035,7 @@ IMPORTANT RULES:
     );
   };
 
-  const DiscCard = ({dv}) => {
+  const DiscCard = ({dv, savedIds, venues, saveDiscovered}) => {
     const isSaved=savedIds.has(dv._id);
     const alreadyIn=venues.some(v=>v.name.toLowerCase()===dv.name.toLowerCase());
     return(
@@ -934,45 +1105,42 @@ IMPORTANT RULES:
     );
   };
 
-const VenueCard = useCallback(({venue}) => (
+  const VenueCard = useCallback(({venue}) => (
     <div style={{position:"relative"}}>
       <div onClick={e=>{e.stopPropagation();toggleCompare(venue.id);}}
-        style={{position:"absolute",top:10,right:10,width:22,height:22,borderRadius:4,border:`2px solid ${compareIds.has(venue.id)?"#0A0A0A":"rgba(255,255,255,0.7)"}`,background:compareIds.has(venue.id)?"#EBF245":"rgba(0,0,0,0.3)",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:2,fontSize:12,color:"#0A0A0A",transition:"all 0.15s"}}>
+        style={{position:"absolute",top:10,right:10,width:22,height:22,borderRadius:4,border:`2px solid ${compareIds.has(venue.id)?"#8B7355":"#D5CEC4"}`,background:compareIds.has(venue.id)?"#8B7355":"#fff",display:"flex",alignItems:"center",justifyContent:"center",cursor:"pointer",zIndex:2,fontSize:12,color:"#fff",transition:"all 0.15s"}}>
         {compareIds.has(venue.id)&&"✓"}
       </div>
       <div onClick={()=>{setSelectedVenue(venue);setIsEditing(false);}}
-        style={{background:"#FFFFFF",borderRadius:12,border:`1.5px solid ${selectedVenue?.id===venue.id?"#0A0A0A":"#E0E0D8"}`,cursor:"pointer",transition:"all 0.2s",overflow:"hidden",boxShadow:selectedVenue?.id===venue.id?"0 4px 20px rgba(0,0,0,0.12)":"0 1px 4px rgba(0,0,0,0.04)"}}
-        onMouseEnter={e=>{e.currentTarget.style.borderColor="#0A0A0A";e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 8px 28px rgba(0,0,0,0.1)";}}
-        onMouseLeave={e=>{e.currentTarget.style.borderColor=selectedVenue?.id===venue.id?"#0A0A0A":"#E0E0D8";e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow=selectedVenue?.id===venue.id?"0 4px 20px rgba(0,0,0,0.12)":"0 1px 4px rgba(0,0,0,0.04)";}}>
-        <VenuePhoto name={venue.name} city={venue.city} height={150}/>
-        <div style={{padding:"14px 16px"}}>
-          <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-            <div style={{flex:1,minWidth:0}}>
-              <h3 style={{margin:0,fontSize:15,fontFamily:"'Playfair Display',serif",color:"#0A0A0A",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{venue.name}</h3>
-              <p style={{margin:"2px 0 0",fontSize:12,color:"#6B6B65"}}>{venue.city}{venue.region?` · ${venue.region}`:""}</p>
-            </div>
-            <Tag filled color={STATUS_COLORS[venue.status]}>{venue.status}</Tag>
+        style={{background:"#fff",borderRadius:12,padding:22,border:`1.5px solid ${selectedVenue?.id===venue.id?"#C8B89A":"#E8E2D9"}`,cursor:"pointer",transition:"all 0.2s",boxShadow:selectedVenue?.id===venue.id?"0 4px 20px rgba(139,115,85,0.15)":"0 1px 4px rgba(0,0,0,0.04)"}}
+        onMouseEnter={e=>{e.currentTarget.style.borderColor="#C8B89A";e.currentTarget.style.transform="translateY(-2px)";e.currentTarget.style.boxShadow="0 6px 24px rgba(139,115,85,0.12)";}}
+        onMouseLeave={e=>{e.currentTarget.style.borderColor=selectedVenue?.id===venue.id?"#C8B89A":"#E8E2D9";e.currentTarget.style.transform="none";e.currentTarget.style.boxShadow=selectedVenue?.id===venue.id?"0 4px 20px rgba(139,115,85,0.15)":"0 1px 4px rgba(0,0,0,0.04)";}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:10}}>
+          <div style={{flex:1,minWidth:0}}>
+            <h3 style={{margin:0,fontSize:16,fontFamily:"'Playfair Display',serif",color:"#2C2622",fontWeight:600,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{venue.name}</h3>
+            <p style={{margin:"3px 0 0",fontSize:13,color:"#8B8279"}}>{venue.city}{venue.region?` · ${venue.region}`:""}</p>
           </div>
-          <div style={{display:"flex",alignItems:"center",gap:12,marginBottom:10}}>
-            <span style={{fontSize:18,fontWeight:700,color:"#0A0A0A",fontFamily:"'Playfair Display',serif"}}>${venue.pricePerHead}</span>
-            <span style={{fontSize:11,color:"#A0A09A"}}>/head</span>
-            {venue.visited&&<span style={{fontSize:11,color:"#1A5C3A",fontWeight:700,background:"#EDFAF3",padding:"2px 8px",borderRadius:6,border:"1px solid #B7E4C7"}}>✓ Visited</span>}
-            <div style={{marginLeft:"auto"}}><Stars rating={venue.exclusivity} size={13}/></div>
-          </div>
-          {venue.website&&<p style={{fontSize:11,color:"#4A6FA5",margin:"0 0 8px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🔗 {venue.website}</p>}
-          <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-            {venue.privateRoom&&<Tag color="#2A7A5A">Private</Tag>}
-            {venue.av&&<Tag color="#4A6FA5">AV</Tag>}
-            {venue.dietary&&<Tag color="#6B4FA5">Dietary</Tag>}
-            {venue.eventSizes.map(s=><Tag key={s} color="#6B6B65">{s.split(" ")[0]}</Tag>)}
-          </div>
-          {venue.rating>0&&(
-            <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #F4F4F0",display:"flex",alignItems:"center",gap:6}}>
-              <span style={{fontSize:11,color:"#A0A09A",textTransform:"uppercase",letterSpacing:"0.06em"}}>Rating</span>
-              <Stars rating={venue.rating} size={12}/>
-            </div>
-          )}
+          <Tag filled color={STATUS_COLORS[venue.status]}>{venue.status}</Tag>
         </div>
+        <div style={{display:"flex",alignItems:"center",gap:16,marginBottom:12}}>
+          <span style={{fontSize:20,fontWeight:600,color:"#2C2622",fontFamily:"'Playfair Display',serif"}}>${venue.pricePerHead}</span>
+          <span style={{fontSize:12,color:"#A09889"}}>/head</span>
+          {venue.visited&&<span style={{fontSize:11,color:"#2D8659",fontWeight:600,background:"#F0F9F4",padding:"2px 8px",borderRadius:10,border:"1px solid #B7E4C7"}}>✓ Visited</span>}
+          <div style={{marginLeft:"auto"}}><Stars rating={venue.exclusivity} size={14}/></div>
+        </div>
+        {venue.website&&<p style={{fontSize:11,color:"#4A6FA5",margin:"0 0 8px",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>🔗 {venue.website}</p>}
+        <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+          {venue.privateRoom&&<Tag color="#5B8A72">Private</Tag>}
+          {venue.av&&<Tag color="#4A6FA5">AV</Tag>}
+          {venue.dietary&&<Tag color="#7B68AE">Dietary</Tag>}
+          {venue.eventSizes.map(s=><Tag key={s} color="#B8A48E">{s.split(" ")[0]}</Tag>)}
+        </div>
+        {venue.rating>0&&(
+          <div style={{marginTop:10,paddingTop:10,borderTop:"1px solid #F0ECE6",display:"flex",alignItems:"center",gap:6}}>
+            <span style={{fontSize:11,color:"#A09889",textTransform:"uppercase",letterSpacing:"0.06em"}}>Rating</span>
+            <Stars rating={venue.rating} size={12}/>
+          </div>
+        )}
       </div>
     </div>
   ),[selectedVenue,compareIds,toggleCompare]);
@@ -1156,7 +1324,17 @@ const VenueCard = useCallback(({venue}) => (
       )}
 
       {/* Panels */}
-      {showDiscover&&mode==="tracker"&&<DiscoverPanel/>}
+      {showDiscover&&mode==="tracker"&&<DiscoverPanel
+        venues={venues} discoverCity={discoverCity} setDiscoverCity={setDiscoverCity}
+        discoverType={discoverType} setDiscoverType={setDiscoverType}
+        searchMode={searchMode} setSearchMode={setSearchMode}
+        batchCities={batchCities} setBatchCities={setBatchCities}
+        isSearching={isSearching} batchProgress={batchProgress}
+        discoveredVenues={discoveredVenues} savedIds={savedIds}
+        searchError={searchError} apiKey={apiKey}
+        discoverVenues={discoverVenues} saveDiscovered={saveDiscovered}
+        setShowDiscover={setShowDiscover} DISCOVER_TYPES={DISCOVER_TYPES}
+      />}
       {selectedVenue&&<DetailPanel key={selectedVenue.id} venue={selectedVenue}/>}
       {showAddForm&&<AddForm/>}
       {showSettings&&<SettingsModal/>}
